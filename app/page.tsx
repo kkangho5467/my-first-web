@@ -23,7 +23,7 @@ export default function Home() {
                   한신대학교 23학번 김강호입니다
                 </p>
                 <a
-                  href="https://www.instagram.com/rkdgh.o_o31/"
+                  href="https://www.instagram.com/04_kangho/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-[#c13584] underline underline-offset-2 hover:text-[#833ab4]"
@@ -35,7 +35,7 @@ export default function Home() {
                       <circle cx="16.6" cy="7.8" r="1" fill="currentColor" />
                     </svg>
                   </span>
-                  https://www.instagram.com/rkdgh.o_o31/
+                  https://www.instagram.com/04_kangho/
                 </a>
 
               </div>
