@@ -1,123 +1,124 @@
 # 블로그 작업 기록
 
-작성일: 2026-03-25
+작성일: 2026-03-31
 
 ## 기록 운영 규칙
-- 이후 블로그 관련 수정 사항은 이 파일에 계속 누적 기록한다.
+- 블로그 관련 명령 이후 결과를 이 파일에 계속 누적 기록한다.
+- 각 기록은 날짜, 사용자 명령 요약, 반영 결과, 변경 파일을 함께 남긴다.
+- 이 문서는 최근 작업부터 확인하기 쉽도록 섹션 단위로 이어서 추가한다.
 
-## 작업 목표
-- 개인 블로그 메인 페이지를 유튜브 채널형 구조를 참고해 재구성
-- 왼쪽 사이드바 기반 내비게이션 추가
-- 우측 상단 로그인 메뉴 자리(추후 기능 연결용) 확보
-- 모바일에서 메뉴 열기/닫기 동작 구현
+## 이번 요약 범위
+- 시작 기준 명령: Next.js와 Tailwind CSS를 사용하여 블로그의 메인 레이아웃 컴포넌트를 만들어줘. 상단에는 네비게이션 바(로고, 메뉴), 중앙에는 콘텐츠 영역, 하단에는 푸터가 들어가야 해.
+- 종료 기준: 현재 명령 직전까지의 결과
 
-## 반영 내용 요약
-1. 메인 페이지 구조 개편
-- 파일: app/page.tsx
-- 카드형 소개 화면에서 블로그형 홈 구성으로 변경
-- 채널 소개 영역 + 콘텐츠 카드 영역 중심으로 재정렬
-- 가로 탭(홈/글/Shorts/라이브) 영역 제거
+## 사용자 명령 및 결과 요약
 
-2. 공통 레이아웃 컴포넌트 분리
-- 파일: app/components/BlogShell.tsx
-- 좌측 고정 사이드바, 상단 헤더, 로그인 메뉴 placeholder를 공통화
-- 사이드바 메뉴를 홈/하루한줄/취미/목표로 확정
-- 활성 메뉴 표시 스타일 추가
+### 1) 메인 레이아웃 컴포넌트 생성 요청
+- 사용자 명령 요약:
+	- Next.js + Tailwind 기반 블로그 메인 레이아웃 생성
+	- 구성: 상단 네비게이션(로고, 메뉴) / 중앙 콘텐츠 / 하단 푸터
+- 결과:
+	- 메인 레이아웃 컴포넌트 추가
+		- app/components/MainLayout.tsx
+	- 홈 페이지가 새 레이아웃을 사용하도록 변경
+		- app/page.tsx
+	- 타입/문법 오류 없음 확인
 
-3. 모바일 메뉴 토글 구현
-- 파일: app/components/BlogShell.tsx
-- 메뉴 버튼 클릭 시 모바일 사이드바 오픈
-- 오버레이 클릭 또는 닫기 버튼 클릭 시 클로즈
-- 모바일에서 메뉴 이동 시 자동 닫힘 처리
+### 2) PostCard 컴포넌트 생성 요청
+- 사용자 명령 요약:
+	- 글 목록 카드 컴포넌트 작성
+	- Props: title, date, excerpt, imageUrl
+- 결과:
+	- 카드 컴포넌트 추가
+		- app/components/PostCard.tsx
+	- next/image 기반 썸네일, 제목/날짜/요약 렌더링 반영
+	- 타입/문법 오류 없음 확인
 
-4. 라우트 페이지 추가
-- 파일: app/daily/page.tsx
-  - 하루한줄 전용 페이지 추가
-- 파일: app/hobby/page.tsx
-  - 취미 페이지 추가
-- 파일: app/goals/page.tsx
-  - 목표 페이지 추가
+### 3) 기존 탭(글 목록/취미/목표) 템플릿 통일 요청
+- 사용자 명령 요약:
+	- 예전 BlogShell 기반 탭을 현재 메인페이지 템플릿에 맞게 변경
+- 결과:
+	- 아래 페이지들이 BlogShell에서 MainLayout 기반으로 전환됨
+		- app/daily/page.tsx
+		- app/hobby/page.tsx
+		- app/goals/page.tsx
+	- 카드/헤더 스타일을 현재 메인페이지 톤에 맞게 통일
+	- 타입/문법 오류 없음 확인
 
-5. 레이아웃 폭 보정
-- 파일: app/components/BlogShell.tsx
-- 데스크톱에서 콘텐츠 영역이 과하게 넘치지 않도록
-  사이드바 폭(16rem)을 제외한 계산 폭으로 조정
+### 4) Markdown 렌더링 + 코드 하이라이팅 컴포넌트 요청
+- 사용자 명령 요약:
+	- Markdown 텍스트를 HTML로 렌더링하는 컴포넌트 생성
+	- react-markdown 사용
+	- 코드 블록 구문 강조 적용
+- 결과:
+	- 의존성 설치
+		- react-markdown
+		- remark-gfm
+		- react-syntax-highlighter
+		- @types/react-syntax-highlighter (dev)
+	- Markdown 렌더러 컴포넌트 추가
+		- app/components/MarkdownRenderer.tsx
+	- fenced code block 언어 감지 후 Syntax Highlighting 적용
+	- 인라인 코드/헤딩/문단/목록/링크 스타일 커스터마이징 반영
+	- 타입/문법 오류 없음 확인
 
-## 현재 파일 상태 (git 기준)
-- 수정됨: .github/copilot-instructions.md
-- 수정됨: app/page.tsx
-- 신규: app/components/BlogShell.tsx
-- 신규: app/daily/page.tsx
-- 신규: app/hobby/page.tsx
-- 신규: app/goals/page.tsx
+## 현재 변경 파일 상태 요약
+- 수정됨
+	- app/page.tsx
+	- app/daily/page.tsx
+	- app/hobby/page.tsx
+	- app/goals/page.tsx
+	- package.json
+	- package-lock.json
+- 신규 파일
+	- app/components/MainLayout.tsx
+	- app/components/PostCard.tsx
+	- app/components/MarkdownRenderer.tsx
 
-## 다음 작업 후보
-- 로그인 메뉴 placeholder를 실제 드롭다운 UI로 확장
-- 사이드바 모바일 애니메이션(슬라이드) 디테일 개선
-- 각 페이지 데이터를 정적 배열에서 실제 콘텐츠 소스로 분리
+## 다음 기록 템플릿
+아래 형식으로 이어서 누적 기록:
 
-## 업데이트 로그
-### 2026-03-25 (레이아웃 밀도/각진 스타일 조정)
-- 파일: app/components/BlogShell.tsx
-  - 둥근 모서리 위주의 요소를 각진 형태로 변경
-  - 사이드바 메뉴를 줄 단위(border) 구조로 변경해 붙어 보이도록 조정
-  - 상단 헤더 및 로그인 placeholder의 rounded 스타일 제거
-- 파일: app/page.tsx
-  - 메인 카드/콘텐츠 카드의 rounded, shadow 스타일 축소
-  - 카드 그리드 간격을 `gap-0`으로 조정해 요소가 붙어 보이도록 변경
-- 파일: app/daily/page.tsx
-  - 섹션 간 간격 및 카드 라운드 제거, 리스트를 밀착형 구성으로 변경
-- 파일: app/hobby/page.tsx
-  - 카드형 요소를 각진 스타일로 통일하고 카드 간격을 `gap-0`으로 조정
-- 파일: app/goals/page.tsx
-  - 리스트 카드 라운드 제거 및 `space-y-0`으로 밀착형 정렬
+### YYYY-MM-DD HH:mm
+- 사용자 명령 요약:
+	- (요청 핵심 1~2줄)
+- 결과:
+	- (무엇을 만들거나 수정했는지)
+	- (검증 결과: 오류 여부)
+- 변경 파일:
+	- (파일 경로 목록)
 
-### 2026-03-25 (콘텐츠 소스 분리)
-- 파일: content/blog-content.ts
-  - 홈/하루한줄/취미/목표 페이지에 사용되는 데이터를 중앙 콘텐츠 소스로 신규 분리
-  - 타입(HomePost, HobbyItem) 정의 추가
-- 파일: app/page.tsx
-  - 홈 페이지의 정적 배열을 제거하고 `homePosts` import로 교체
-- 파일: app/daily/page.tsx
-  - 정적 배열을 제거하고 `dailyLines` import로 교체
-- 파일: app/hobby/page.tsx
-  - 정적 배열을 제거하고 `hobbyItems` import로 교체
-- 파일: app/goals/page.tsx
-  - 정적 배열을 제거하고 `goals` import로 교체
+### 2026-03-31
+- 사용자 명령 요약:
+	- 전체 게시물 배열과 현재 페이지 번호를 받아, 페이지당 6개만 반환하는 페이지네이션 유틸 함수 작성 요청
+- 결과:
+	- 페이지네이션 유틸 함수 추가
+	- 현재 페이지 값이 잘못된 경우(0, 음수, 소수, 비수치)도 안전하게 보정하도록 처리
+	- 페이지당 게시물 수 상수(6)도 함께 export
+- 변경 파일:
+	- lib/paginatePosts.ts
 
-### 2026-03-25 (메인소개 채널 프로필 스타일 리디자인)
-- 파일: app/page.tsx
-  - 메인소개 영역을 채널 프로필형 레이아웃으로 교체
-  - 상단 배너 + 원형 프로필 + 채널명/핸들/요약정보 구조 반영
-  - `구독중`, `가입`, `커뮤니티` 액션 버튼 스타일 추가
-  - 소개 하단에 구분선과 보조 라벨을 배치해 채널 페이지 톤으로 정리
+### 2026-03-31
+- 사용자 명령 요약:
+	- 게시물 제목/내용 기반 검색창 로직 구현 요청
+	- 타이핑 시 디바운스 처리로 검색 성능 최적화 요청
+- 결과:
+	- 제목/내용 검색 순수 유틸 함수 추가
+	- 디바운스 검색 훅 추가(기본 300ms)
+	- 검색창 예시 컴포넌트 추가(디바운싱 상태 및 결과 개수 표시)
+	- 콜백은 useEffect에서 실행하도록 처리해 렌더링 부작용 방지
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- lib/searchPosts.ts
+	- app/hooks/useDebouncedPostSearch.ts
+	- app/components/PostSearchBox.tsx
 
-### 2026-03-25 (상단 직사각형 배너 축소)
-- 파일: app/page.tsx
-  - 메인소개 상단 배너 높이를 축소 (`h-44/md:h-56` -> `h-32/md:h-40`)
-  - 프로필 겹침 강도를 완화하기 위해 음수 마진을 조정 (`-mt-16/-mt-14` -> `-mt-12/-mt-10`)
-
-### 2026-03-25 (메인소개 비겹침 고정)
-- 파일: app/page.tsx
-  - 상단 배너를 추가 축소 (`h-32/md:h-40` -> `h-24/md:h-28`)
-  - 프로필 블록의 음수 마진을 제거해 배너/문자 완전 비겹침 구조로 변경
-  - 프로필 크기를 축소 (`h-32,w-32/h-40,w-40` -> `h-24,w-24/h-28,w-28`)
-
-### 2026-03-25 (인스타그램 링크 클릭 동작 추가)
-- 파일: app/page.tsx
-  - 인스타그램 URL 텍스트를 `<a>` 링크로 변경
-  - 새 탭 이동(`target="_blank"`) 및 보안 속성(`rel="noopener noreferrer"`) 적용
-
-### 2026-03-25 (인스타그램 아이콘/색상 스타일 적용)
-- 파일: app/page.tsx
-  - 링크 앞에 인스타그램 앱 느낌의 아이콘(그라디언트 + 카메라 SVG) 추가
-  - 링크 텍스트 색상을 인스타그램 톤(`#c13584`, hover `#833ab4`)으로 조정
-
-### 2026-03-25 (미사용 버튼 제거)
-- 파일: app/page.tsx
-  - 메인소개의 `구독중`, `가입`, `커뮤니티` 버튼 그룹 제거
-
-### 2026-03-25 (인스타 아이콘 크기 확대)
-- 파일: app/page.tsx
-  - 인스타 아이콘 박스 크기 `h-5 w-5` -> `h-6 w-6`
-  - 내부 SVG 아이콘 크기 `h-3.5 w-3.5` -> `h-4 w-4`
+### 2026-03-31
+- 사용자 명령 요약:
+	- CSS Grid 레이아웃을 모바일 1열, 태블릿 2열, 데스크탑 3열로 반응형 수정 요청
+- 결과:
+	- 홈 및 취미 페이지의 grid 클래스를 `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`로 통일
+	- 반응형 기준이 모바일/태블릿/데스크탑으로 명확하게 적용됨
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/page.tsx
+	- app/hobby/page.tsx

@@ -1,24 +1,26 @@
-import BlogShell from "../components/BlogShell";
+import MainLayout from "../components/MainLayout";
 import { dailyLines } from "../../content/blog-content";
 
 export default function DailyPage() {
   return (
-    <BlogShell active="daily">
-      <section className="mt-4 border border-slate-200 bg-white p-6 md:p-8">
-        <p className="text-xs tracking-[0.16em] text-slate-500">DAILY ONE LINE</p>
-        <h2 className="mt-2 text-3xl font-bold text-slate-900">하루한줄</h2>
-        <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">
-          매일 한 문장으로 생각을 정리하고, 블로그의 결을 단단하게 유지하는 기록 공간입니다.
-        </p>
-      </section>
+    <MainLayout>
+      <section className="space-y-6">
+        <header className="rounded-lg border border-slate-200 bg-white p-6 md:p-8">
+          <p className="text-xs tracking-[0.16em] text-slate-500">POST LIST</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">커뮤니티</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
+            최근 작성한 글을 한 눈에 확인할 수 있는 공간입니다.
+          </p>
+        </header>
 
-      <section className="mt-0 space-y-0">
+        <section className="space-y-3">
         {dailyLines.map((line) => (
-          <article key={line} className="border border-slate-200 bg-white p-5">
+          <article key={line} className="rounded-lg border border-slate-200 bg-white p-5">
             <p className="text-base leading-7 text-slate-700">{line}</p>
           </article>
         ))}
+        </section>
       </section>
-    </BlogShell>
+    </MainLayout>
   );
 }
