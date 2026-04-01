@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import AuthStatusControl from "./AuthStatusControl";
 import FooterEmailLink from "./FooterEmailLink";
 import ThemeToggle from "./ThemeToggle";
@@ -18,6 +21,10 @@ const menuItems = [
 ];
 
 export default function MainLayout({ children }: MainLayoutProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const closeMenu = () => setIsMenuOpen(false);
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
@@ -26,7 +33,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             My Blog
           </Link>
           <div className="flex items-center gap-4">
-            <nav aria-label="주요 메뉴">
+            <nav aria-label="주요 메뉴" className="hidden md:block">
               <ul className="flex items-center gap-4 text-sm font-medium text-slate-700">
                 {menuItems.map((item) => (
                   <li key={item.href}>
@@ -40,10 +47,47 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 ))}
               </ul>
             </nav>
+
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="block md:hidden border border-slate-300 px-2 py-1 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+              aria-label="메뉴 열기"
+            >
+              ☰
+            </button>
+
             <AuthStatusControl />
             <ThemeToggle />
           </div>
         </div>
+
+        {isMenuOpen && (
+          <div className="border-t border-slate-200 bg-white md:hidden">
+            <nav aria-label="모바일 메뉴" className="mx-auto max-w-6xl px-4 py-3">
+              <ul className="space-y-1">
+                {menuItems.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={closeMenu}
+                      className="block rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={closeMenu}
+                className="mt-3 w-full rounded border border-slate-300 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+              >
+                ✕ 닫기
+              </button>
+            </nav>
+          </div>
+        )}
       </header>
 
       <main className="mx-auto w-full max-w-6xl px-4 py-10">{children}</main>
