@@ -1,6 +1,5 @@
 import MainLayout from "../components/MainLayout";
 import DailyPostBoard from "../components/DailyPostBoard";
-import { mockPosts } from "../../content/blog-content";
 
 export default function DailyPage() {
   return (
@@ -14,7 +13,7 @@ export default function DailyPage() {
           </p>
         </header>
 
-        <DailyPostBoard initialPosts={mockPosts} />
+        <DailyPostBoard />
       </section>
     </MainLayout>
   );

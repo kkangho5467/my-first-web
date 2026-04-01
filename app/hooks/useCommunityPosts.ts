@@ -1,70 +1,150 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
+import { supabase } from "@/lib/supabaseClient";
 
-export const COMMUNITY_POSTS_KEY = "community-posts";
+type PostRow = {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+};
 
-export function readCommunityPostsFromStorage(): MockPost[] | null {
-  if (typeof window === "undefined") {
-    return null;
+function formatPostDate(createdAt: string): string {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return "";
   }
 
-  const raw = window.localStorage.getItem(COMMUNITY_POSTS_KEY);
-  if (!raw) {
-    return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(date)
+    .split("-");
+
+  return `${parts[0]}-${parts[1]}-${parts[2]}`;
+}
+
+function mapRowToMockPost(row: PostRow): MockPost {
+  return {
+    id: row.id,
+    title: row.title,
+    excerpt: row.content,
+    date: formatPostDate(row.created_at),
+  };
+}
+
+export async function fetchCommunityPosts(): Promise<MockPost[]> {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, title, content, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
   }
 
-  try {
-    const parsed = JSON.parse(raw) as MockPost[];
-    if (!Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
+  const rows = (data ?? []) as PostRow[];
+  return rows.map(mapRowToMockPost);
+}
+
+export async function createPostInSupabase(title: string, content: string): Promise<void> {
+  const { error } = await supabase.from("posts").insert({ title, content });
+
+  if (error) {
+    console.error("Failed to create post:", error);
+    alert("게시글 작성 중 오류가 발생했습니다.");
+    throw error;
+  }
+}
+
+export async function updatePostInSupabase(postId: string, title: string, content: string): Promise<void> {
+  const { error } = await supabase.from("posts").update({ title, content }).eq("id", postId);
+
+  if (error) {
+    console.error("Failed to update post:", error);
+    alert("게시글 수정 중 오류가 발생했습니다.");
+    throw error;
+  }
+}
+
+export async function deletePostInSupabase(postId: string): Promise<void> {
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
+
+  if (error) {
+    console.error("Failed to delete post:", error);
+    alert("게시글 삭제 중 오류가 발생했습니다.");
+    throw error;
   }
 }
 
 export function useCommunityPosts(initialPosts: MockPost[]) {
-  const [posts, setPosts] = useState<MockPost[]>(() => {
-    const stored = readCommunityPostsFromStorage();
-    return stored ?? initialPosts;
-  });
+  const [posts, setPosts] = useState<MockPost[]>(initialPosts);
+  const [loading, setLoading] = useState(true);
+
+  const refetchPosts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const nextPosts = await fetchCommunityPosts();
+      setPosts(nextPosts);
+    } catch (error) {
+      console.error("Failed to refetch posts from Supabase:", error);
+      alert("게시글 목록을 다시 불러오는 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(COMMUNITY_POSTS_KEY, JSON.stringify(posts));
-  }, [posts]);
+    let isMounted = true;
 
-  useEffect(() => {
-    function handleStorage(event: StorageEvent) {
-      if (event.key !== COMMUNITY_POSTS_KEY) {
-        return;
-      }
-
-      const nextPosts = readCommunityPostsFromStorage();
-      if (nextPosts) {
-        setPosts(nextPosts);
+    async function loadPosts() {
+      setLoading(true);
+      try {
+        const nextPosts = await fetchCommunityPosts();
+        if (isMounted) {
+          setPosts(nextPosts);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setPosts(initialPosts);
+        }
+        console.error("Failed to fetch posts from Supabase:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
-    window.addEventListener("storage", handleStorage);
+    loadPosts();
+
     return () => {
-      window.removeEventListener("storage", handleStorage);
+      isMounted = false;
     };
-  }, []);
+  }, [initialPosts]);
 
   const actions = useMemo(
     () => ({
-      addPost(post: MockPost) {
-        setPosts((prev) => [post, ...prev]);
+      async createPost(title: string, content: string) {
+        await createPostInSupabase(title, content);
+        await refetchPosts();
       },
-      removePost(postId: string) {
-        setPosts((prev) => prev.filter((post) => post.id !== postId));
+      async updatePost(postId: string, title: string, content: string) {
+        await updatePostInSupabase(postId, title, content);
+        await refetchPosts();
+      },
+      async deletePost(postId: string) {
+        await deletePostInSupabase(postId);
+        await refetchPosts();
       },
     }),
-    []
+    [refetchPosts]
   );
 
-  return { posts, ...actions };
+  return { posts, loading, refetchPosts, ...actions };
 }

@@ -9,11 +9,12 @@ type RecentPostListProps = {
 };
 
 export default function RecentPostList({ initialPosts }: RecentPostListProps) {
-  const { posts } = useCommunityPosts(initialPosts);
+  const { posts, loading } = useCommunityPosts(initialPosts);
 
   return (
     <section aria-label="최근 커뮤니티">
       <h2 className="text-2xl font-semibold tracking-tight text-slate-900">최근 커뮤니티</h2>
+      {loading ? <p className="mt-3 text-sm text-slate-500">게시글을 불러오는 중입니다...</p> : null}
       <ul className="mt-6 space-y-4">
         {posts.map((post) => (
           <li key={post.id} className="flex items-baseline justify-between gap-6">

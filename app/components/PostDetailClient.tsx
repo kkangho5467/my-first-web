@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
-import { COMMUNITY_POSTS_KEY, readCommunityPostsFromStorage } from "@/app/hooks/useCommunityPosts";
+import { fetchCommunityPosts, updatePostInSupabase } from "@/app/hooks/useCommunityPosts";
+import { deleteMyComment, fetchCommentsByPostId, insertComment, type PostComment } from "@/app/hooks/usePostComments";
 import PostDetailSkeleton from "./PostDetailSkeleton";
 
 type PostDetailClientProps = {
@@ -11,16 +12,7 @@ type PostDetailClientProps = {
   initialPost: MockPost | null;
 };
 
-type CommunityComment = {
-  id: string;
-  content: string;
-  createdAt: string;
-  updatedAt?: string;
-};
-
-const COMMUNITY_COMMENTS_STORAGE_KEY = "community-comments-v1";
-
-function formatKoreaDateTime(): string {
+function formatKoreaDateTime(raw: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -28,33 +20,7 @@ function formatKoreaDateTime(): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date());
-}
-
-function readCommentsMapFromStorage(): Record<string, CommunityComment[]> {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const raw = window.localStorage.getItem(COMMUNITY_COMMENTS_STORAGE_KEY);
-    if (!raw) {
-      return {};
-    }
-
-    const parsed = JSON.parse(raw) as Record<string, CommunityComment[]>;
-    return parsed ?? {};
-  } catch {
-    return {};
-  }
-}
-
-function saveCommentsMapToStorage(commentMap: Record<string, CommunityComment[]>) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(COMMUNITY_COMMENTS_STORAGE_KEY, JSON.stringify(commentMap));
+  }).format(new Date(raw));
 }
 
 export default function PostDetailClient({ id, initialPost }: PostDetailClientProps) {
@@ -62,18 +28,22 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingExcerpt, setEditingExcerpt] = useState("");
-  const [comments, setComments] = useState<CommunityComment[]>([]);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingComment, setEditingComment] = useState("");
 
-  const isUserCreatedPost = Boolean(post?.id.startsWith("user-"));
+  const isUserCreatedPost = typeof post?.id === "string" && post.id.startsWith("user-");
 
-  function persistComments(nextComments: CommunityComment[]) {
-    setComments(nextComments);
-    const currentMap = readCommentsMapFromStorage();
-    currentMap[id] = nextComments;
-    saveCommentsMapToStorage(currentMap);
+  async function refetchComments() {
+    setCommentsLoading(true);
+    try {
+      const nextComments = await fetchCommentsByPostId(id);
+      setComments(nextComments);
+    } catch {
+      setComments([]);
+    } finally {
+      setCommentsLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -81,23 +51,29 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    const storedPosts = readCommunityPostsFromStorage();
-    if (!storedPosts) {
-      return;
+    async function loadPost() {
+      try {
+        const posts = await fetchCommunityPosts();
+        console.log("All posts from Supabase:", posts);
+        console.log("Looking for post ID:", id);
+        // URL의 id는 문자열이므로 숫자로 변환하거나, Supabase id와 비교 시 문자열로 변환
+        const matched = posts.find((item) => String(item.id) === id) ?? null;
+        console.log("Matched post:", matched);
+        setPost(matched);
+      } catch (error) {
+        console.error("Failed to fetch post detail from Supabase:", error);
+        setPost(null);
+      }
     }
 
-    const matched = storedPosts.find((item) => item.id === id) ?? null;
-    setPost(matched);
+    loadPost();
   }, [id, initialPost]);
 
   useEffect(() => {
-    const commentMap = readCommentsMapFromStorage();
-    setComments(commentMap[id] ?? []);
-    setEditingId(null);
-    setEditingComment("");
+    void refetchComments();
   }, [id]);
 
-  function handleCreateComment(event: React.FormEvent<HTMLFormElement>) {
+  async function handleCreateComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = newComment.trim();
 
@@ -105,60 +81,14 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    const nextComments: CommunityComment[] = [
-      {
-        id: `comment-${Date.now()}`,
-        content,
-        createdAt: formatKoreaDateTime(),
-      },
-      ...comments,
-    ];
-
-    persistComments(nextComments);
+    await insertComment(id, content);
+    await refetchComments();
     setNewComment("");
   }
 
-  function handleDeleteComment(commentId: string) {
-    const nextComments = comments.filter((comment) => comment.id !== commentId);
-    persistComments(nextComments);
-
-    if (editingId === commentId) {
-      setEditingId(null);
-      setEditingComment("");
-    }
-  }
-
-  function handleStartEdit(comment: CommunityComment) {
-    setEditingId(comment.id);
-    setEditingComment(comment.content);
-  }
-
-  function handleCancelEdit() {
-    setEditingId(null);
-    setEditingComment("");
-  }
-
-  function handleSaveEdit(commentId: string) {
-    const content = editingComment.trim();
-    if (!content) {
-      return;
-    }
-
-    const nextComments = comments.map((comment) => {
-      if (comment.id !== commentId) {
-        return comment;
-      }
-
-      return {
-        ...comment,
-        content,
-        updatedAt: formatKoreaDateTime(),
-      };
-    });
-
-    persistComments(nextComments);
-    setEditingId(null);
-    setEditingComment("");
+  async function handleDeleteComment(comment: PostComment) {
+    await deleteMyComment(comment.postId, comment.content, comment.createdAt);
+    await refetchComments();
   }
 
   function handleStartPostEdit() {
@@ -177,7 +107,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     setEditingExcerpt("");
   }
 
-  function handleSavePostEdit() {
+  async function handleSavePostEdit() {
     if (!post) {
       return;
     }
@@ -195,12 +125,15 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       excerpt: nextExcerpt,
     };
 
-    setPost(updatedPost);
+    await updatePostInSupabase(post.id, updatedPost.title, updatedPost.excerpt);
 
-    const storedPosts = readCommunityPostsFromStorage();
-    if (storedPosts) {
-      const nextPosts = storedPosts.map((item) => (item.id === post.id ? updatedPost : item));
-      window.localStorage.setItem(COMMUNITY_POSTS_KEY, JSON.stringify(nextPosts));
+    try {
+      const posts = await fetchCommunityPosts();
+      const matched = posts.find((item) => item.id === post.id) ?? updatedPost;
+      setPost(matched);
+    } catch (error) {
+      console.error("Failed to refetch posts after update:", error);
+      setPost(updatedPost);
     }
 
     setIsEditingPost(false);
@@ -307,7 +240,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
         <h2 className="text-xl font-semibold text-slate-900">댓글</h2>
-        <p className="mt-1 text-sm text-slate-500">댓글을 작성하고 수정하거나 삭제할 수 있습니다.</p>
+        <p className="mt-1 text-sm text-slate-500">댓글을 작성하거나 삭제할 수 있습니다.</p>
 
         <form onSubmit={handleCreateComment} className="mt-4 space-y-3">
           <textarea
@@ -327,71 +260,29 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         </form>
 
         <ul className="mt-6 space-y-3">
-          {comments.map((comment) => {
-            const isEditing = editingId === comment.id;
-
-            return (
-              <li key={comment.id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-slate-500">
-                    작성 {comment.createdAt}
-                    {comment.updatedAt ? ` · 수정 ${comment.updatedAt}` : ""}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {!isEditing ? (
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(comment)}
-                        className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100"
-                      >
-                        수정
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100"
-                    >
-                      삭제
-                    </button>
-                  </div>
-                </div>
-
-                {isEditing ? (
-                  <div className="mt-3 space-y-2">
-                    <textarea
-                      value={editingComment}
-                      onChange={(event) => setEditingComment(event.target.value)}
-                      rows={3}
-                      className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleSaveEdit(comment.id)}
-                        disabled={editingComment.trim().length === 0}
-                        className="rounded border border-slate-300 bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                      >
-                        저장
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:bg-slate-100"
-                      >
-                        취소
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{comment.content}</p>
-                )}
-              </li>
-            );
-          })}
+          {comments.map((comment, index) => (
+            <li
+              key={`${comment.postId}-${comment.createdAt}-${index}`}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-slate-500">작성 {formatKoreaDateTime(comment.createdAt)}</p>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteComment(comment)}
+                  className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100"
+                >
+                  삭제
+                </button>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{comment.content}</p>
+            </li>
+          ))}
         </ul>
 
-        {comments.length === 0 ? <p className="mt-5 text-sm text-slate-500">아직 댓글이 없습니다.</p> : null}
+        {comments.length === 0 ? (
+          <p className="mt-5 text-sm text-slate-500">아직 댓글이 없습니다.</p>
+        ) : null}
       </section>
     </section>
   );
