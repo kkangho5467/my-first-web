@@ -21,12 +21,12 @@ function isAdmin(user: User | null): boolean {
   
   // 이메일 prefix 확인
   const emailPrefix = user.email?.split("@")[0];
-  if (emailPrefix === "admin5467") {
+  if (emailPrefix === "admin5467" || emailPrefix === "kkangho5467") {
     return true;
   }
   
   // user ID 확인
-  if (user.id === "admin5467") {
+  if (user.id === "admin5467" || user.id === "kkangho5467") {
     return true;
   }
   

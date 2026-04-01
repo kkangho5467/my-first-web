@@ -12,11 +12,11 @@ function isAdmin(user: User | null): boolean {
   }
   
   const emailPrefix = user.email?.split("@")[0];
-  if (emailPrefix === "admin5467") {
+  if (emailPrefix === "admin5467" || emailPrefix === "kkangho5467") {
     return true;
   }
   
-  if (user.id === "admin5467") {
+  if (user.id === "admin5467" || user.id === "kkangho5467") {
     return true;
   }
   
@@ -30,6 +30,7 @@ export default function DailyPostBoard() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editingAuthorId, setEditingAuthorId] = useState<string>("");
   const [editingTitle, setEditingTitle] = useState("");
   const [editingContent, setEditingContent] = useState("");
 
@@ -77,17 +78,28 @@ export default function DailyPostBoard() {
   }
 
   async function handleDelete(postId: string, postAuthorId: string) {
+    if (!window.confirm("글을 삭제하시겠습니까?")) {
+      return;
+    }
     await deletePost(postId, user, postAuthorId);
   }
 
-  function startEdit(postId: string, postTitle: string, postContent: string) {
+  function startEdit(postId: string, postAuthorId: string, postTitle: string, postContent: string) {
+    // 권한 확인
+    if (!isAdmin(user) && user?.id !== postAuthorId) {
+      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+      return;
+    }
+
     setEditingPostId(postId);
+    setEditingAuthorId(postAuthorId);
     setEditingTitle(postTitle);
     setEditingContent(postContent);
   }
 
   function cancelEdit() {
     setEditingPostId(null);
+    setEditingAuthorId("");
     setEditingTitle("");
     setEditingContent("");
   }
@@ -96,6 +108,16 @@ export default function DailyPostBoard() {
     event.preventDefault();
 
     if (!editingPostId || editingTitle.trim().length === 0 || editingContent.trim().length === 0) {
+      return;
+    }
+
+    // 권한 재확인
+    if (!isAdmin(user) && user?.id !== editingAuthorId) {
+      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+      return;
+    }
+
+    if (!window.confirm("글을 저장하시겠습니까?")) {
       return;
     }
 
@@ -219,13 +241,15 @@ export default function DailyPostBoard() {
                     <p className="text-xs text-slate-500">작성일 {post.date} · 글쓴이: {post.author_name}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(post.id, post.title, post.excerpt)}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                    >
-                      수정
-                    </button>
+                    {(isAdmin(user) || user?.id === post.author_id) && (
+                      <button
+                        type="button"
+                        onClick={() => startEdit(post.id, post.author_id, post.title, post.excerpt)}
+                        className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                      >
+                        수정
+                      </button>
+                    )}
                     {(isAdmin(user) || user?.id === post.author_id) && (
                       <button
                         type="button"

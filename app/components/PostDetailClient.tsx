@@ -21,11 +21,11 @@ function isAdmin(user: User | null): boolean {
   }
   
   const emailPrefix = user.email?.split("@")[0];
-  if (emailPrefix === "admin5467") {
+  if (emailPrefix === "admin5467" || emailPrefix === "kkangho5467") {
     return true;
   }
   
-  if (user.id === "admin5467") {
+  if (user.id === "admin5467" || user.id === "kkangho5467") {
     return true;
   }
   
@@ -55,7 +55,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
 
-  const isUserCreatedPost = typeof post?.id === "string" && post.id.startsWith("user-");
+  const canEditPost = post && (isAdmin(currentUser) || currentUser?.id === post.author_id);
   
   useEffect(() => {
     let isMounted = true;
@@ -128,18 +128,32 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    await insertComment(id, content);
+    if (!window.confirm("댓글을 등록하시겠습니까?")) {
+      return;
+    }
+
+    await insertComment(id, content, currentUser);
     await refetchComments();
     setNewComment("");
   }
 
   async function handleDeleteComment(comment: PostComment) {
-    await deleteMyComment(comment.postId, comment.content, comment.createdAt);
+    if (!window.confirm("댓글을 삭제하시겠습니까?")) {
+      return;
+    }
+
+    await deleteMyComment(comment.postId, comment.content, comment.createdAt, comment.authorId, currentUser);
     await refetchComments();
   }
 
   function handleStartPostEdit() {
     if (!post) {
+      return;
+    }
+
+    // 권한 확인
+    if (!isAdmin(currentUser) && currentUser?.id !== post.author_id) {
+      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
       return;
     }
 
@@ -159,10 +173,20 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
+    // 권한 확인
+    if (!isAdmin(currentUser) && currentUser?.id !== post.author_id) {
+      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+      return;
+    }
+
     const nextTitle = editingTitle.trim();
     const nextExcerpt = editingExcerpt.trim();
 
     if (!nextTitle || !nextExcerpt) {
+      return;
+    }
+
+    if (!window.confirm("글을 저장하시겠습니까?")) {
       return;
     }
 
@@ -190,6 +214,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
   async function handleDeletePost() {
     if (!post) {
+      return;
+    }
+
+    if (!window.confirm("글을 삭제하시겠습니까?")) {
       return;
     }
 
@@ -242,7 +270,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         <p>{post.excerpt}</p>
       </PostDetailSkeleton>
 
-      {(isAdmin(currentUser) || currentUser?.id === post.author_id) && (
+      {canEditPost && (
         <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold text-slate-900">게시글 관리</h2>
@@ -348,14 +376,18 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
               className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-500">작성 {formatKoreaDateTime(comment.createdAt)}</p>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteComment(comment)}
-                  className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100"
-                >
-                  삭제
-                </button>
+                <p className="text-xs text-slate-500">
+                  작성자: <span className="font-medium">{comment.authorName}</span> · {formatKoreaDateTime(comment.createdAt)}
+                </p>
+                {(isAdmin(currentUser) || currentUser?.id === comment.authorId) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteComment(comment)}
+                    className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100"
+                  >
+                    삭제
+                  </button>
+                )}
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-700">{comment.content}</p>
             </li>
