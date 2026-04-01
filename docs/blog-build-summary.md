@@ -1,17 +1,228 @@
 # 블로그 작업 기록
 
 작성일: 2026-03-31
-
 ## 기록 운영 규칙
-- 블로그 관련 명령 이후 결과를 이 파일에 계속 누적 기록한다.
 - 각 기록은 날짜, 사용자 명령 요약, 반영 결과, 변경 파일을 함께 남긴다.
 - 이 문서는 최근 작업부터 확인하기 쉽도록 섹션 단위로 이어서 추가한다.
 
 ## 이번 요약 범위
 - 시작 기준 명령: Next.js와 Tailwind CSS를 사용하여 블로그의 메인 레이아웃 컴포넌트를 만들어줘. 상단에는 네비게이션 바(로고, 메뉴), 중앙에는 콘텐츠 영역, 하단에는 푸터가 들어가야 해.
 - 종료 기준: 현재 명령 직전까지의 결과
-
 ## 사용자 명령 및 결과 요약
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 댓글 기능에 이어 작성된 글 자체를 상세 페이지에서 수정하는 기능 추가 요청
+- 결과:
+	- 게시글 상세에 `게시글 수정` 섹션 추가
+	- 사용자 작성 글(`user-*`)에서만 제목/내용 수정 UI 노출
+	- `수정 시작`, `저장`, `취소` 동작 추가
+	- 저장 시 상세 화면 즉시 반영 + `community-posts` localStorage 동기화
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/PostDetailClient.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 게시글 상세 페이지에서 댓글 작성/수정/삭제 및 저장 기능 추가 요청
+	- 작은 "<-" 화살표가 포함된 `커뮤니티로 돌아가기` 버튼 추가 요청
+- 결과:
+	- 상세 페이지에 댓글 입력 폼 추가(댓글 등록)
+	- 등록된 댓글을 게시글 단위로 `localStorage`에 저장하여 재접속 시 유지
+	- 댓글별 `수정/저장/취소/삭제` 기능 추가
+	- 댓글 작성/수정 시각 표시(대한민국 시간 기준)
+	- 상세 상단에 작은 `<- 커뮤니티로 돌아가기` 버튼 추가(글 없음 상태 포함)
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/PostDetailClient.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 앱 전반의 "글 목록" 명칭을 "커뮤니티"로 변경 요청
+- 결과:
+	- 상단 네비게이션의 "글 목록" 메뉴를 "커뮤니티"로 변경
+	- `/daily` 페이지 제목을 "커뮤니티"로 변경
+	- 메인 최근 섹션의 aria-label 및 제목을 "최근 커뮤니티"로 변경
+	- 상세 페이지 복귀 링크 문구를 "커뮤니티로 돌아가기"로 변경
+	- 커뮤니티 보드 목록 제목을 "커뮤니티"로 변경
+	- 앱 디렉터리 재검색으로 "글 목록" 문구 잔존 없음 확인
+- 변경 파일:
+	- app/components/MainLayout.tsx
+	- app/daily/page.tsx
+	- app/components/RecentPostList.tsx
+	- app/components/DailyPostBoard.tsx
+	- app/components/PostDetailClient.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 메인 페이지에 세계 시간 기준 대한민국(Asia/Seoul) 서버 시간 표시 요청
+- 결과:
+	- 메인 페이지에 `서버 시간(대한민국)` 텍스트 추가
+	- `Intl.DateTimeFormat` + `timeZone: Asia/Seoul`로 시간 포맷 적용
+	- `dynamic = force-dynamic` 설정으로 요청 시마다 서버 시간이 갱신되도록 반영
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/page.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 메인 페이지 시간 표기를 실시간으로 변경 요청
+- 결과:
+	- `KoreaLiveClock` 클라이언트 컴포넌트 추가
+	- 1초 간격(`setInterval`)으로 대한민국(Asia/Seoul) 시간 갱신 처리
+	- 초기 렌더는 서버 시간 값을 받아 하이드레이션 안정성 유지
+	- 메인 페이지의 기존 정적 시간 문구를 실시간 컴포넌트로 교체
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/KoreaLiveClock.tsx
+	- app/page.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 푸터 Email 아이콘/텍스트에 hover 또는 클릭 시 작은 정보창(tooltip/popover) 표시 요청
+	- Esc 닫기, 바깥 클릭 닫기, aria-label 등 접근성 요구 반영 요청
+- 결과:
+	- `FooterEmailLink` 클라이언트 컴포넌트 추가
+	- hover 시 툴팁 표시, 클릭 시 첫 클릭은 툴팁 표시/두 번째 클릭은 기존 mailto 동작 유지
+	- Esc 키 닫기, 바깥 영역 클릭 닫기 처리
+	- 툴팁 내용/스타일(작은 크기, 연한 배경, 얇은 테두리, 둥근 모서리) 반영
+	- MainLayout Email 항목을 새 컴포넌트로 교체
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/FooterEmailLink.tsx
+	- app/components/MainLayout.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- Email 클릭 시 `mailto` 이동을 제거하고 정보창만 뜨도록 변경 요청
+- 결과:
+	- Email 요소를 링크에서 버튼으로 변경하여 메일 앱 이동 동작 제거
+	- hover 시 열림 + 클릭 시 고정 토글(열기/닫기) 동작 적용
+	- Esc 및 바깥 클릭 시 닫기 동작 유지
+	- 툴팁 문구를 mailto 안내에서 정보창 안내로 변경
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/FooterEmailLink.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 정보창의 이메일 주소 오른쪽에 복사 버튼 추가 요청
+- 결과:
+	- 학교/개인 이메일 각 줄 오른쪽에 `복사` 버튼 추가
+	- 클릭 시 클립보드 복사, 성공 시 잠시 `복사됨` 상태 표시
+	- 툴팁 너비 및 줄 레이아웃을 버튼 포함 형태로 조정
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/FooterEmailLink.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 다크모드 토글 추가 요청
+- 결과:
+	- 헤더에 테마 토글 버튼(`라이트/다크`) 추가
+	- `ThemeToggle` 클라이언트 컴포넌트 생성(localStorage 저장 + html[data-theme] 반영)
+	- `globals.css`에 data-theme 기반 다크모드 오버라이드 스타일 추가
+	- 기존 레이아웃의 배경/텍스트/보더 색상이 다크모드에서 함께 전환되도록 반영
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/ThemeToggle.tsx
+	- app/components/MainLayout.tsx
+	- app/globals.css
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 다크모드에서 오른쪽 상단 네비게이션(홈, 글 목록 등) 색상을 배경과 대비되게 변경 요청
+- 결과:
+	- 네비게이션 링크에 전용 클래스(`nav-menu-link`) 부여
+	- 다크모드에서 링크 텍스트를 밝은 색으로 강제 오버라이드
+	- hover 시 더 밝은 텍스트 + 어두운 배경으로 버튼 대비 강화
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/MainLayout.tsx
+	- app/globals.css
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 다크모드에서 hover 시 버튼이 안 보이는 현상 수정 요청
+- 결과:
+	- 토글 버튼에 전용 클래스(`theme-toggle-btn`) 부여
+	- 다크모드에서 버튼 기본/hover 상태의 텍스트·배경·보더 대비를 강제 오버라이드
+	- hover 시에도 버튼 텍스트가 배경과 겹치지 않도록 가시성 개선
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/ThemeToggle.tsx
+	- app/globals.css
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 다크모드에서 푸터의 GitHub/Instagram/Email 아이콘이 안 보이는 문제 수정 요청
+- 결과:
+	- 푸터 아이콘들에 공통 클래스(`footer-icon`) 적용
+	- 다크모드에서 아이콘에 `filter: brightness(0) invert(1)` 적용해 흰색 계열로 표시
+	- GitHub/Instagram/Email 아이콘 가시성 개선
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/MainLayout.tsx
+	- app/components/FooterEmailLink.tsx
+	- app/globals.css
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 글 목록 페이지 디자인 개선 및 글 작성 기능 추가 요청
+- 결과:
+	- `DailyPostBoard` 클라이언트 컴포넌트 추가(제목/내용 입력 + 글 등록)
+	- 작성 시 새 글이 목록 맨 위에 즉시 반영되도록 상태 관리 구현
+	- 목록 UI를 카드형 리스트로 정리하여 작성일/제목/내용을 함께 표시
+	- `/daily` 페이지에서 기존 정적 리스트를 새 작성형 컴포넌트로 교체
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/DailyPostBoard.tsx
+	- app/daily/page.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 작성된 글 삭제 기능 추가 요청
+- 결과:
+	- 글 목록 각 항목 우측에 `삭제` 버튼 추가
+	- 삭제 버튼 클릭 시 해당 글이 목록 상태에서 즉시 제거되도록 구현
+	- 작성일/삭제 버튼을 한 줄에 배치해 목록 사용성 개선
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/DailyPostBoard.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 작성/삭제한 글이 다음 방문에도 유지되도록 저장 기능 요청
+	- 메인 페이지 최근 글 목록과 글 목록 페이지 데이터 연동 요청
+- 결과:
+	- `useCommunityPosts` 공용 훅 추가(localStorage 저장/로드)
+	- 글 작성/삭제 데이터가 브라우저에 영구 저장되어 재방문 시 유지
+	- `DailyPostBoard`를 공용 훅 기반으로 전환하여 작성/삭제 상태를 저장소와 동기화
+	- `RecentPostList`도 동일 저장소를 읽도록 변경하여 메인 최근 글 목록 자동 연동
+	- 사용자 작성 글은 상세 페이지 미구현 상태를 고려해 메인에서 일반 텍스트로 표시
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/hooks/useCommunityPosts.ts
+	- app/components/DailyPostBoard.tsx
+	- app/components/RecentPostList.tsx
+	- app/page.tsx
+
+### 2026-04-01
+- 사용자 명령 요약:
+	- 사용자 작성 글도 실제 커뮤니티처럼 상세 페이지에서 열리도록 연동 요청(ㄲㄱ)
+- 결과:
+	- `PostDetailClient` 컴포넌트 추가(정적 글 + localStorage 글 통합 조회)
+	- `/posts/[id]` 페이지를 클라이언트 상세 렌더러 기반으로 확장
+	- 메인 최근 글 목록에서 사용자 작성 글도 상세 링크 이동 가능하게 변경
+	- 글 목록 페이지의 제목도 상세 링크로 통일
+	- 저장 훅 유틸 함수(`readCommunityPostsFromStorage`) export 처리
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/PostDetailClient.tsx
+	- app/posts/[id]/page.tsx
+	- app/components/RecentPostList.tsx
+	- app/components/DailyPostBoard.tsx
+	- app/hooks/useCommunityPosts.ts
 
 ### 1) 메인 레이아웃 컴포넌트 생성 요청
 - 사용자 명령 요약:
@@ -244,3 +455,4 @@
 	- 타입/문법 오류 없음 확인
 - 변경 파일:
 	- app/components/MainLayout.tsx
+  

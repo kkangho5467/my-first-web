@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import FooterEmailLink from "./FooterEmailLink";
+import ThemeToggle from "./ThemeToggle";
 
 type MainLayoutProps = {
   children: ReactNode;
@@ -8,7 +10,7 @@ type MainLayoutProps = {
 
 const menuItems = [
   { label: "홈", href: "/" },
-  { label: "글 목록", href: "/daily" },
+  { label: "커뮤니티", href: "/daily" },
   { label: "취미", href: "/hobby" },
   { label: "목표", href: "/goals" },
 ];
@@ -21,17 +23,23 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <Link href="/" className="text-lg font-bold tracking-tight text-slate-900">
             My Blog
           </Link>
-          <nav aria-label="주요 메뉴">
-            <ul className="flex items-center gap-4 text-sm font-medium text-slate-700">
-              {menuItems.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className="transition-colors hover:text-slate-900">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <div className="flex items-center gap-4">
+            <nav aria-label="주요 메뉴">
+              <ul className="flex items-center gap-4 text-sm font-medium text-slate-700">
+                {menuItems.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="nav-menu-link rounded px-2 py-1 transition-colors hover:text-slate-900"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -48,7 +56,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600"
                 >
-                  <Image src="/github.svg" alt="GitHub" width={12} height={12} />
+                  <Image className="footer-icon" src="/github.svg" alt="GitHub" width={12} height={12} />
                   GitHub
                 </a>
               </li>
@@ -59,18 +67,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600"
                 >
-                  <Image src="/instagram.svg" alt="Instagram" width={12} height={12} />
+                  <Image
+                    className="footer-icon"
+                    src="/instagram.svg"
+                    alt="Instagram"
+                    width={12}
+                    height={12}
+                  />
                   Instagram
                 </a>
               </li>
               <li>
-                <a
-                  href="mailto:your-email@example.com"
-                  className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600"
-                >
-                  <Image src="/email.svg" alt="Email" width={12} height={12} />
-                  Email
-                </a>
+                <FooterEmailLink />
               </li>
             </ul>
           </nav>

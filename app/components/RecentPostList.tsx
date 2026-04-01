@@ -1,14 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import type { MockPost } from "@/content/blog-content";
+import { useCommunityPosts } from "@/app/hooks/useCommunityPosts";
 
 type RecentPostListProps = {
-  posts: MockPost[];
+  initialPosts: MockPost[];
 };
 
-export default function RecentPostList({ posts }: RecentPostListProps) {
+export default function RecentPostList({ initialPosts }: RecentPostListProps) {
+  const { posts } = useCommunityPosts(initialPosts);
+
   return (
-    <section aria-label="최근 글 목록">
-      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">최근 글 목록</h2>
+    <section aria-label="최근 커뮤니티">
+      <h2 className="text-2xl font-semibold tracking-tight text-slate-900">최근 커뮤니티</h2>
       <ul className="mt-6 space-y-4">
         {posts.map((post) => (
           <li key={post.id} className="flex items-baseline justify-between gap-6">
