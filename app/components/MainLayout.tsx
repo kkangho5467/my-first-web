@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -7,7 +8,7 @@ type MainLayoutProps = {
 
 const menuItems = [
   { label: "홈", href: "/" },
-  { label: "커뮤니티", href: "/daily" },
+  { label: "글 목록", href: "/daily" },
   { label: "취미", href: "/hobby" },
   { label: "목표", href: "/goals" },
 ];
@@ -37,8 +38,42 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <main className="mx-auto w-full max-w-6xl px-4 py-10">{children}</main>
 
       <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto w-full max-w-6xl px-4 py-5 text-sm text-slate-500">
-          © {new Date().getFullYear()} My Blog. All rights reserved.
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-6 text-xs text-slate-400">
+          <nav aria-label="푸터 링크">
+            <ul className="flex items-center gap-4">
+              <li>
+                <a
+                  href="https://github.com/kkangho5467"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600"
+                >
+                  <Image src="/github.svg" alt="GitHub" width={12} height={12} />
+                  GitHub
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/04_kangho/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600"
+                >
+                  <Image src="/instagram.svg" alt="Instagram" width={12} height={12} />
+                  Instagram
+                </a>
+              </li>
+              <li>
+                <a
+                  href="mailto:your-email@example.com"
+                  className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600"
+                >
+                  <Image src="/email.svg" alt="Email" width={12} height={12} />
+                  Email
+                </a>
+              </li>
+            </ul>
+          </nav>
         </div>
       </footer>
     </div>

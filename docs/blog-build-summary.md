@@ -122,3 +122,125 @@
 - 변경 파일:
 	- app/page.tsx
 	- app/hobby/page.tsx
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 블로그 메인 화면에 표시할 Mock Data 배열 5개 생성 요청
+	- 객체 구조: id, title, date, excerpt
+- 결과:
+	- 목데이터 타입 `MockPost` 추가
+	- 메인 화면에서 바로 사용할 수 있는 `mockPosts` 배열 5개 추가
+	- 각 항목에 고유 ID, 제목, 작성일, 짧은 요약 반영
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- content/blog-content.ts
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- Mock Data를 활용해 메인 화면에 아주 심플한 텍스트 글 목록 렌더링 요청
+	- 제목 클릭 시 상세 페이지 이동 링크 연결 요청
+	- 상세 페이지 뼈대 컴포넌트(큰 제목/날짜 + 본문 영역) 생성 요청
+- 결과:
+	- 메인 화면을 `작성일 + 글 제목` 텍스트 리스트로 변경
+	- 각 제목에 `/posts/[id]` 상세 링크 연결
+	- 상세 페이지 뼈대 컴포넌트 `PostDetailSkeleton` 추가
+	- 동적 상세 페이지 `app/posts/[id]/page.tsx` 추가 및 데이터 조회/404 처리 반영
+	- `getMockPostById` 유틸 함수 추가
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/page.tsx
+	- app/components/PostDetailSkeleton.tsx
+	- app/posts/[id]/page.tsx
+	- content/blog-content.ts
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 상단 네비게이션에서 글 목록 메뉴가 사라진 현상 확인 요청
+- 결과:
+	- 원인 확인: 네비게이션 메뉴 배열에서 /daily 항목 label이 빈 문자열로 설정되어 있었음
+	- 수정 완료: /daily 항목 label을 글 목록으로 복구
+	- 화면에서 상단 메뉴에 글 목록이 다시 표시되도록 반영
+- 변경 파일:
+	- app/components/MainLayout.tsx
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 메인 페이지에 글들이 글 목록에 들어가도록 개선 요청
+- 결과:
+	- 메인 페이지는 이미 `mockPosts` 기반 글 목록(작성일 + 제목 링크)으로 렌더링되고 있음을 확인
+	- 사용 동선 일관성을 위해 글 목록 탭(`/daily`)도 동일한 `mockPosts` 텍스트 리스트로 변경
+	- 글 제목 클릭 시 상세 페이지(`/posts/[id]`)로 이동하도록 동일하게 연결
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/daily/page.tsx
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 메인 페이지 최상단에 이미지 없는 자기소개 Hero 영역 추가 요청
+	- 큰 제목(h1) + 옅은 회색 소개 문단(p) + 넉넉한 상하 여백 적용 요청
+- 결과:
+	- 메인 페이지 상단에 Hero 섹션 추가(좌측 정렬)
+	- 큰 제목: 안녕하세요, 김강호입니다.
+	- 소개 문단: 작성자 소개와 글 주제 설명 2문장 반영
+	- 상하 여백 확대: `py-20 md:py-28` 적용
+	- 기존 글 목록은 Hero 아래 섹션으로 분리 유지
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/page.tsx
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 자기소개 아래에 최근 글 목록 컴포넌트 작성 요청
+	- 카드/테두리/그림자/썸네일 없이, 한 줄에 작성일(좌) + 제목(우) 형태 요청
+	- 제목 hover 시에만 밑줄 표시 요청
+- 결과:
+	- `RecentPostList` 컴포넌트 추가
+	- 리스트를 `ul > li` 구조로 구성하고 각 항목을 `flex justify-between`으로 좌우 배치
+	- 작성일은 옅은 회색, 제목은 검은색 스타일 적용
+	- 제목 링크에 hover 시 밑줄만 표시되도록 반영
+	- 메인 페이지에서 기존 목록 마크업을 `RecentPostList`로 교체
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/RecentPostList.tsx
+	- app/page.tsx
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 페이지 하단 푸터를 텍스트 중심으로 단순하게 구성 요청
+	- GitHub, Email, Instagram 링크를 작고 옅은 색으로 중앙 정렬 배치 요청
+- 결과:
+	- MainLayout 푸터를 미니멀 텍스트 링크 3개 구조로 교체
+	- `text-xs`, `text-slate-400`, `justify-center` 기반의 작은 중앙 정렬 스타일 적용
+	- 불필요한 복잡 정보/아이콘 없이 텍스트만 표시되도록 반영
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/MainLayout.tsx
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 푸터 링크 앞에 각각 알맞은 이미지 추가 요청
+	- 링크 순서를 GitHub, Instagram, Email 순으로 변경 요청
+- 결과:
+	- 푸터 링크 순서 변경 완료: GitHub -> Instagram -> Email
+	- 각 링크 앞에 아이콘 이미지 배치
+	- 아이콘 파일 3개 추가: github.svg, instagram.svg, email.svg
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/MainLayout.tsx
+	- public/github.svg
+	- public/instagram.svg
+	- public/email.svg
+
+### 2026-03-31
+- 사용자 명령 요약:
+	- 푸터 링크 URL 변경 요청
+	- 인스타그램: https://www.instagram.com/04_kangho/
+	- 깃허브: https://github.com/kkangho5467
+	- 이메일 링크는 기존 값 유지 요청
+- 결과:
+	- GitHub 링크를 사용자 계정 URL로 변경
+	- Instagram 링크를 사용자 계정 URL로 변경
+	- Email 링크는 `mailto:your-email@example.com` 그대로 유지
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/components/MainLayout.tsx
