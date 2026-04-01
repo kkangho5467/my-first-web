@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
-import { fetchCommunityPosts, updatePostInSupabase } from "@/app/hooks/useCommunityPosts";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
+import { fetchCommunityPosts, updatePostInSupabase, deletePostInSupabase } from "@/app/hooks/useCommunityPosts";
 import { deleteMyComment, fetchCommentsByPostId, insertComment, type PostComment } from "@/app/hooks/usePostComments";
 import PostDetailSkeleton from "./PostDetailSkeleton";
 
@@ -11,6 +14,23 @@ type PostDetailClientProps = {
   id: string;
   initialPost: MockPost | null;
 };
+
+function isAdmin(user: User | null): boolean {
+  if (!user?.email && !user?.id) {
+    return false;
+  }
+  
+  const emailPrefix = user.email?.split("@")[0];
+  if (emailPrefix === "admin5467") {
+    return true;
+  }
+  
+  if (user.id === "admin5467") {
+    return true;
+  }
+  
+  return false;
+}
 
 function formatKoreaDateTime(raw: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
@@ -24,7 +44,10 @@ function formatKoreaDateTime(raw: string): string {
 }
 
 export default function PostDetailClient({ id, initialPost }: PostDetailClientProps) {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [post, setPost] = useState<MockPost | null>(initialPost);
+  const [isLoadingPost, setIsLoadingPost] = useState(!initialPost);
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingExcerpt, setEditingExcerpt] = useState("");
@@ -33,6 +56,32 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   const [newComment, setNewComment] = useState("");
 
   const isUserCreatedPost = typeof post?.id === "string" && post.id.startsWith("user-");
+  
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUser() {
+      const { data } = await supabase.auth.getUser();
+      if (isMounted) {
+        setCurrentUser(data.user);
+      }
+    }
+
+    void loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        setCurrentUser(session?.user ?? null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   async function refetchComments() {
     setCommentsLoading(true);
@@ -54,15 +103,13 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     async function loadPost() {
       try {
         const posts = await fetchCommunityPosts();
-        console.log("All posts from Supabase:", posts);
-        console.log("Looking for post ID:", id);
-        // URL의 id는 문자열이므로 숫자로 변환하거나, Supabase id와 비교 시 문자열로 변환
         const matched = posts.find((item) => String(item.id) === id) ?? null;
-        console.log("Matched post:", matched);
         setPost(matched);
       } catch (error) {
         console.error("Failed to fetch post detail from Supabase:", error);
         setPost(null);
+      } finally {
+        setIsLoadingPost(false);
       }
     }
 
@@ -141,6 +188,30 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     setEditingExcerpt("");
   }
 
+  async function handleDeletePost() {
+    if (!post) {
+      return;
+    }
+
+    await deletePostInSupabase(post.id, currentUser, post.author_id);
+    router.push("/daily");
+  }
+
+  if (isLoadingPost) {
+    return (
+      <section className="space-y-4">
+        <Link
+          href="/daily"
+          className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-700 transition-colors hover:bg-slate-100"
+        >
+          <span aria-hidden>{"<-"}</span>
+          <span>커뮤니티로 돌아가기</span>
+        </Link>
+        <p className="text-sm text-slate-500">게시글 정보를 불러오는 중입니다...</p>
+      </section>
+    );
+  }
+
   if (!post) {
     return (
       <section className="space-y-4">
@@ -167,23 +238,34 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         <span>커뮤니티로 돌아가기</span>
       </Link>
 
-      <PostDetailSkeleton title={post.title} date={post.date}>
+      <PostDetailSkeleton title={post.title} date={post.date} author_name={post.author_name}>
         <p>{post.excerpt}</p>
       </PostDetailSkeleton>
 
-      {isUserCreatedPost ? (
+      {(isAdmin(currentUser) || currentUser?.id === post.author_id) && (
         <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold text-slate-900">게시글 수정</h2>
-            {!isEditingPost ? (
-              <button
-                type="button"
-                onClick={handleStartPostEdit}
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
-              >
-                수정 시작
-              </button>
-            ) : null}
+            <h2 className="text-xl font-semibold text-slate-900">게시글 관리</h2>
+            <div className="flex gap-2">
+              {!isEditingPost ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleStartPostEdit}
+                    className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
+                  >
+                    수정 시작
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeletePost}
+                    className="rounded border border-red-300 px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    삭제
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
 
           {isEditingPost ? (
@@ -233,10 +315,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
               </div>
             </div>
           ) : (
-            <p className="mt-2 text-sm text-slate-500">직접 작성한 글의 제목과 내용을 수정할 수 있습니다.</p>
+            <p className="mt-2 text-sm text-slate-500">게시글을 수정하거나 삭제할 수 있습니다.</p>
           )}
         </section>
-      ) : null}
+      )}
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
         <h2 className="text-xl font-semibold text-slate-900">댓글</h2>

@@ -15,6 +15,8 @@ export type MockPost = {
   title: string;
   date: string;
   excerpt: string;
+  author_name: string;
+  author_id: string;
 };
 
 export const homePosts: HomePost[] = [
@@ -65,38 +67,7 @@ export const goals: string[] = [
   "상반기 안에 개인 브랜딩 페이지 완성",
 ];
 
-export const mockPosts: MockPost[] = [
-  {
-    id: "post-001",
-    title: "React Server Components를 이해하는 가장 쉬운 방법",
-    date: "2026-03-31",
-    excerpt: "RSC가 기존 CSR/SSR과 어떻게 다른지, 블로그 프로젝트 관점에서 핵심만 정리했습니다.",
-  },
-  {
-    id: "post-002",
-    title: "Tailwind로 카드 UI를 빠르게 만드는 패턴 4가지",
-    date: "2026-03-29",
-    excerpt: "자주 쓰는 카드 레이아웃을 재사용 가능한 클래스 조합으로 정리해 개발 속도를 높이는 방법을 다룹니다.",
-  },
-  {
-    id: "post-003",
-    title: "블로그 검색 성능 개선: 디바운스 적용기",
-    date: "2026-03-27",
-    excerpt: "사용자 입력마다 필터링하지 않고 디바운스를 적용해 체감 성능을 개선한 과정을 공유합니다.",
-  },
-  {
-    id: "post-004",
-    title: "페이지네이션 유틸 함수 설계 체크리스트",
-    date: "2026-03-25",
-    excerpt: "목록 페이지에서 자주 발생하는 경계 조건을 고려해 안전한 페이지네이션 로직을 만드는 방법입니다.",
-  },
-  {
-    id: "post-005",
-    title: "Next.js App Router 폴더 구조 실전 가이드",
-    date: "2026-03-23",
-    excerpt: "레이아웃, 페이지, 컴포넌트, 유틸 파일을 어떻게 나누면 유지보수가 쉬운지 실제 예시로 설명합니다.",
-  },
-];
+export const mockPosts: MockPost[] = [];
 
 export function getMockPostById(id: string): MockPost | undefined {
   return mockPosts.find((post) => post.id === id);

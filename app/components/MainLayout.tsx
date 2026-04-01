@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import AuthStatusControl from "./AuthStatusControl";
 import FooterEmailLink from "./FooterEmailLink";
 import ThemeToggle from "./ThemeToggle";
 
@@ -13,6 +14,7 @@ const menuItems = [
   { label: "커뮤니티", href: "/daily" },
   { label: "취미", href: "/hobby" },
   { label: "목표", href: "/goals" },
+  { label: "마이페이지", href: "/mypage" },
 ];
 
 export default function MainLayout({ children }: MainLayoutProps) {
@@ -38,6 +40,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 ))}
               </ul>
             </nav>
+            <AuthStatusControl />
             <ThemeToggle />
           </div>
         </div>
