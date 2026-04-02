@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { MouseEvent, ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import AuthStatusControl from "./AuthStatusControl";
 import FooterEmailLink from "./FooterEmailLink";
 import ThemeToggle from "./ThemeToggle";
@@ -20,26 +22,137 @@ const menuItems = [
   { label: "마이페이지", href: "/mypage" },
 ];
 
+const TOAST_REMOVE_DELAY_MS = 3900;
+
 export default function MainLayout({ children }: MainLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [runtimeToast, setRuntimeToast] = useState<{ id: number; message: string } | null>(null);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const closeMenu = () => setIsMenuOpen(false);
 
+  const isActiveMenu = (href: string) => {
+    if (href === "/") {
+      return pathname === "/";
+    }
+    return pathname?.startsWith(href);
+  };
+
+  const queryToastMessage =
+    searchParams.get("notice") === "login-required" ? "로그인 이후 이용 가능합니다" : null;
+
+  useEffect(() => {
+    if (searchParams.get("notice") !== "login-required") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("notice");
+      const nextQuery = params.toString();
+      const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+      router.replace(nextUrl, { scroll: false });
+    }, TOAST_REMOVE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    const handleToastEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message: string }>;
+      const message = customEvent.detail?.message;
+      if (!message) {
+        return;
+      }
+
+      setRuntimeToast({ id: Date.now(), message });
+    };
+
+    window.addEventListener("app:toast", handleToastEvent);
+
+    return () => {
+      window.removeEventListener("app:toast", handleToastEvent);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!runtimeToast) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setRuntimeToast(null);
+    }, TOAST_REMOVE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [runtimeToast]);
+
+  const handleMenuLinkClick = async (
+    event: MouseEvent<HTMLAnchorElement>,
+    href: string,
+    onAfterNavigate?: () => void
+  ) => {
+    if (href !== "/mypage") {
+      onAfterNavigate?.();
+      return;
+    }
+
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) {
+      event.preventDefault();
+      onAfterNavigate?.();
+      router.push("/auth?notice=login-required");
+      return;
+    }
+
+    onAfterNavigate?.();
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      {queryToastMessage ? (
+        <div key={`query-${pathname}-${searchParams.toString()}`} className="pointer-events-none fixed left-1/2 top-5 z-50 -translate-x-1/2">
+          <div className="toast-auto-hide rounded-full bg-slate-900/95 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur">
+            {queryToastMessage}
+          </div>
+        </div>
+      ) : null}
+
+      {runtimeToast ? (
+        <div key={`runtime-${runtimeToast.id}`} className="pointer-events-none fixed left-1/2 top-5 z-50 -translate-x-1/2">
+          <div className="toast-auto-hide rounded-full bg-slate-900/95 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur">
+            {runtimeToast.message}
+          </div>
+        </div>
+      ) : null}
+
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
-          <Link href="/" className="text-lg font-bold tracking-tight text-slate-900">
-            My Blog
-          </Link>
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-4">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-slate-900">
+              My Blog
+            </Link>
+
             <nav aria-label="주요 메뉴" className="hidden md:block">
-              <ul className="flex items-center gap-4 text-sm font-medium text-slate-700">
+              <ul className="flex items-center gap-3 text-sm font-medium text-slate-700">
                 {menuItems.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="nav-menu-link rounded px-2 py-1 transition-colors hover:text-slate-900"
+                      prefetch
+                      onClick={(event) => {
+                        void handleMenuLinkClick(event, item.href);
+                      }}
+                      aria-current={isActiveMenu(item.href) ? "page" : undefined}
+                      className={`nav-menu-link rounded px-2 py-1 hover:text-slate-900 ${
+                        isActiveMenu(item.href) ? "bg-slate-100 text-slate-900" : ""
+                      }`}
                     >
                       {item.label}
                     </Link>
@@ -47,7 +160,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 ))}
               </ul>
             </nav>
+          </div>
 
+          <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -57,7 +172,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
               ☰
             </button>
 
-            <AuthStatusControl />
+            <div className="hidden w-[230px] justify-end md:flex">
+              <AuthStatusControl />
+            </div>
             <ThemeToggle />
           </div>
         </div>
@@ -70,8 +187,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      onClick={closeMenu}
-                      className="block rounded px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                      prefetch
+                      aria-current={isActiveMenu(item.href) ? "page" : undefined}
+                      onClick={(event) => {
+                        void handleMenuLinkClick(event, item.href, closeMenu);
+                      }}
+                      className={`mobile-menu-link block rounded px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 ${
+                        isActiveMenu(item.href) ? "bg-slate-100 text-slate-900" : ""
+                      }`}
                     >
                       {item.label}
                     </Link>

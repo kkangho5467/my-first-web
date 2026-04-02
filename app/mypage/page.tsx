@@ -1,10 +1,10 @@
 import MainLayout from "@/app/components/MainLayout";
-import MyPageClient from "@/app/components/MyPageClient";
+import MyProfile from "@/app/components/MyProfile";
 
 export default function MyPage() {
   return (
     <MainLayout>
-      <MyPageClient />
+      <MyProfile />
     </MainLayout>
   );
 }

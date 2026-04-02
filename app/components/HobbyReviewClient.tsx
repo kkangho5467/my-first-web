@@ -3,116 +3,73 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-interface Review {
+interface HobbyItem {
   id: string;
   author_id: string;
-  category: '축구' | '영화' | '음악';
+  category: string;
   title: string;
   rating: number;
-  created_at: string;
   comment: string;
+  author_nickname: string;
+  likes_count: number;
 }
 
-interface Comment {
-  id: string;
-  review_id: string;
-  author_id: string;
-  text: string;
-  created_at: string;
-}
-
-const categories = ['전체', '축구', '영화', '음악'] as const;
+const categories = ['축구', '영화', '음악', '독서', '게임', '기타'] as const;
 
 const categoryBadgeColor: Record<string, string> = {
   축구: 'bg-blue-100 text-blue-800 border-blue-300',
   영화: 'bg-rose-100 text-rose-800 border-rose-300',
   음악: 'bg-purple-100 text-purple-800 border-purple-300',
+  독서: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  게임: 'bg-amber-100 text-amber-800 border-amber-300',
+  기타: 'bg-slate-100 text-slate-800 border-slate-300',
 };
 
 const renderStars = (rating: number) => {
   return '⭐'.repeat(rating);
 };
 
-const truncateComment = (comment: string, lines: number = 2) => {
-  const lineArray = comment.split('\n');
-  if (lineArray.length > lines) {
-    return lineArray.slice(0, lines).join('\n') + '...';
-  }
-  
-  // 글자 수로도 제한 (약 2줄 기준 80자)
-  if (comment.length > 80) {
-    return comment.substring(0, 80) + '...';
-  }
-  
-  return comment;
-};
-
 export default function HobbyReviewClient() {
-  const [selectedCategory, setSelectedCategory] = useState<typeof categories[number]>('전체');
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [hobbies, setHobbies] = useState<HobbyItem[]>([]);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [newComments, setNewComments] = useState<Record<string, string>>({});
+  const [likingIds, setLikingIds] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
-    category: '축구' as (typeof categories)[number],
+    author_nickname: '',
+    category: '축구' as string,
     title: '',
     rating: 5,
     comment: '',
   });
 
-  // 현재 사용자 정보 로드 및 리뷰 데이터 로드
+  const fetchHobbies = async () => {
+    const { data, error } = await supabase
+      .from('hobbies')
+      .select('id, author_id, category, title, rating, comment, author_nickname, likes_count');
+
+    if (error) {
+      console.error('취미 피드 로드 오류:', error);
+      return;
+    }
+
+    setHobbies((data || []) as HobbyItem[]);
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session?.user) {
-          const userId = data.session.user.id;
-          const userEmail = data.session.user.email || '';
-          setCurrentUser({ id: userId, email: userEmail });
+        const { data: sessionData } = await supabase.auth.getSession();
+        const sessionUser = sessionData.session?.user;
+        setCurrentUserId(sessionUser?.id ?? null);
 
-          // admin5467 또는 kkangho5467로 시작하는 이메일 체크
-          setIsAdmin(
-            userEmail.startsWith('admin5467') ||
-            userEmail.startsWith('kkangho5467') ||
-            userEmail.includes('admin5467') ||
-            userEmail.includes('kkangho5467')
-          );
-        }
-
-        // Supabase에서 리뷰 데이터 로드
-        const { data: reviewsData, error } = await supabase
-          .from('hobbies')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('리뷰 로드 오류:', error);
-        } else if (reviewsData) {
-          setReviews(reviewsData as Review[]);
-
-          // 각 리뷰의 댓글 로드
-          if (reviewsData.length > 0) {
-            const commentsMap: Record<string, Comment[]> = {};
-            for (const review of reviewsData) {
-              const { data: commentsData } = await supabase
-                .from('hobby_comments')
-                .select('*')
-                .eq('review_id', review.id)
-                .order('created_at', { ascending: true });
-              if (commentsData) {
-                commentsMap[review.id] = commentsData as Comment[];
-              }
-            }
-            setComments(commentsMap);
-          }
-        }
+        const emailPrefix = sessionUser?.email?.split('@')[0] || '';
+        setIsAdmin(emailPrefix === 'admin5467' || emailPrefix === 'kkangho5467');
+        await fetchHobbies();
       } catch (err) {
         console.error('데이터 로드 오류:', err);
       } finally {
@@ -122,22 +79,10 @@ export default function HobbyReviewClient() {
 
     loadData();
 
-    // 세션 변경 감지
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const userId = session.user.id;
-        const userEmail = session.user.email || '';
-        setCurrentUser({ id: userId, email: userEmail });
-        setIsAdmin(
-          userEmail.startsWith('admin5467') ||
-          userEmail.startsWith('kkangho5467') ||
-          userEmail.includes('admin5467') ||
-          userEmail.includes('kkangho5467')
-        );
-      } else {
-        setCurrentUser(null);
-        setIsAdmin(false);
-      }
+      setCurrentUserId(session?.user?.id ?? null);
+      const emailPrefix = session?.user?.email?.split('@')[0] || '';
+      setIsAdmin(emailPrefix === 'admin5467' || emailPrefix === 'kkangho5467');
     });
 
     return () => {
@@ -145,213 +90,147 @@ export default function HobbyReviewClient() {
     };
   }, []);
 
-  const filteredReviews =
-    selectedCategory === '전체'
-      ? reviews
-      : reviews.filter((review) => review.category === selectedCategory);
-
-  const handleAddReview = async () => {
-    if (!formData.title.trim() || !formData.comment.trim()) {
-      alert('제목과 소감을 입력해주세요.');
+  const handleLike = async (id: string) => {
+    const target = hobbies.find((item) => item.id === id);
+    if (!target) {
       return;
     }
 
-    if (!currentUser) {
-      alert('먼저 로그인해주세요.');
+    setLikingIds((prev) => new Set(prev).add(id));
+    setHobbies((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, likes_count: (item.likes_count || 0) + 1 } : item
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from('hobbies')
+        .update({ likes_count: (target.likes_count || 0) + 1 })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+    } catch (err) {
+      console.error('좋아요 업데이트 오류:', err);
+      setHobbies((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, likes_count: Math.max((item.likes_count || 1) - 1, 0) } : item
+        )
+      );
+    } finally {
+      setLikingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!currentUserId) {
+      alert('로그인 후 작성할 수 있습니다.');
+      return;
+    }
+
+    if (
+      !formData.author_nickname.trim() ||
+      !formData.category.trim() ||
+      !formData.title.trim() ||
+      !formData.comment.trim()
+    ) {
+      alert('닉네임, 카테고리, 제목, 소감을 모두 입력해주세요.');
       return;
     }
 
     setSubmitting(true);
     try {
-      if (editingId) {
-        // 수정
-        const { error } = await supabase
-          .from('hobbies')
-          .update({
-            category: formData.category,
-            title: formData.title,
-            rating: formData.rating,
-            comment: formData.comment,
-          })
-          .eq('id', editingId);
+      const payload = {
+        author_nickname: formData.author_nickname,
+        category: formData.category,
+        title: formData.title,
+        rating: formData.rating,
+        comment: formData.comment,
+      };
 
-        if (error) {
-          alert('리뷰 수정 중 오류가 발생했습니다.');
-          console.error('수정 오류:', error);
-        } else {
-          const { data: updatedData } = await supabase
-            .from('hobbies')
-            .select('*')
-            .order('created_at', { ascending: false });
+      const { error } = editingId
+        ? await supabase.from('hobbies').update(payload).eq('id', editingId)
+        : await supabase.from('hobbies').insert([
+            {
+              author_id: currentUserId,
+              ...payload,
+              likes_count: 0,
+            },
+          ]);
 
-          if (updatedData) {
-            setReviews(updatedData as Review[]);
-          }
-
-          setFormData({ category: '축구', title: '', rating: 5, comment: '' });
-          setEditingId(null);
-          setFormOpen(false);
-          alert('리뷰가 수정되었습니다!');
-        }
-      } else {
-        // 신규 작성
-        const { error } = await supabase.from('hobbies').insert([
-          {
-            author_id: currentUser.id,
-            category: formData.category,
-            title: formData.title,
-            rating: formData.rating,
-            comment: formData.comment,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-
-        if (error) {
-          alert('리뷰 등록 중 오류가 발생했습니다.');
-          console.error('등록 오류:', error);
-        } else {
-          const { data: refreshedData } = await supabase
-            .from('hobbies')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (refreshedData) {
-            setReviews(refreshedData as Review[]);
-          }
-
-          setFormData({ category: '축구', title: '', rating: 5, comment: '' });
-          setFormOpen(false);
-          alert('리뷰가 등록되었습니다!');
-        }
+      if (error) {
+        throw error;
       }
+
+      setFormData({
+        author_nickname: '',
+        category: '축구',
+        title: '',
+        rating: 5,
+        comment: '',
+      });
+      setEditingId(null);
+      setFormOpen(false);
+      await fetchHobbies();
     } catch (err) {
-      console.error('오류:', err);
-      alert('오류가 발생했습니다.');
+      console.error('등록 오류:', err);
+      alert('등록 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteReview = async (reviewId: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) {
+  const handleEditReview = (review: HobbyItem) => {
+    if (!currentUserId) {
+      alert('로그인 후 이용할 수 있습니다.');
       return;
     }
 
-    try {
-      // 댓글 먼저 삭제
-      await supabase.from('hobby_comments').delete().eq('review_id', reviewId);
-
-      // 리뷰 삭제
-      const { error } = await supabase.from('hobbies').delete().eq('id', reviewId);
-
-      if (error) {
-        alert('삭제 중 오류가 발생했습니다.');
-        console.error('삭제 오류:', error);
-      } else {
-        setReviews(reviews.filter((r) => r.id !== reviewId));
-        setComments((prev) => {
-          const newComments = { ...prev };
-          delete newComments[reviewId];
-          return newComments;
-        });
-      }
-    } catch (err) {
-      console.error('삭제 중 오류:', err);
+    if (!isAdmin && review.author_id !== currentUserId) {
+      alert('수정 권한이 없습니다.');
+      return;
     }
-  };
 
-  const handleEditReview = (review: Review) => {
+    setEditingId(review.id);
     setFormData({
+      author_nickname: review.author_nickname,
       category: review.category,
       title: review.title,
       rating: review.rating,
       comment: review.comment,
     });
-    setEditingId(review.id);
     setFormOpen(true);
   };
 
-  const handleAddComment = async (reviewId: string) => {
-    const text = newComments[reviewId]?.trim();
-    if (!text) {
-      alert('댓글을 입력해주세요.');
+  const handleDeleteReview = async (review: HobbyItem) => {
+    if (!currentUserId) {
+      alert('로그인 후 이용할 수 있습니다.');
       return;
     }
 
-    if (!currentUser) {
-      alert('먼저 로그인해주세요.');
+    if (!isAdmin && review.author_id !== currentUserId) {
+      alert('삭제 권한이 없습니다.');
       return;
     }
 
-    try {
-      const { error } = await supabase.from('hobby_comments').insert([
-        {
-          review_id: reviewId,
-          author_id: currentUser.id,
-          text,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-      if (error) {
-        console.error('댓글 추가 오류:', error);
-        alert('댓글 추가 중 오류가 발생했습니다.');
-      } else {
-        // 해당 리뷰의 댓글 다시 로드
-        const { data: updatedComments } = await supabase
-          .from('hobby_comments')
-          .select('*')
-          .eq('review_id', reviewId)
-          .order('created_at', { ascending: true });
-
-        if (updatedComments) {
-          setComments((prev) => ({
-            ...prev,
-            [reviewId]: updatedComments as Comment[],
-          }));
-        }
-
-        setNewComments((prev) => ({
-          ...prev,
-          [reviewId]: '',
-        }));
-      }
-    } catch (err) {
-      console.error('댓글 추가 오류:', err);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string, reviewId: string) => {
-    if (!confirm('댓글을 삭제하시겠습니까?')) {
+    if (!window.confirm('해당 글을 삭제하시겠습니까?')) {
       return;
     }
 
-    try {
-      const { error } = await supabase.from('hobby_comments').delete().eq('id', commentId);
-
-      if (error) {
-        console.error('댓글 삭제 오류:', error);
-      } else {
-        setComments((prev) => ({
-          ...prev,
-          [reviewId]: prev[reviewId]?.filter((c) => c.id !== commentId) || [],
-        }));
-      }
-    } catch (err) {
-      console.error('댓글 삭제 오류:', err);
+    const { error } = await supabase.from('hobbies').delete().eq('id', review.id);
+    if (error) {
+      console.error('삭제 오류:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+      return;
     }
-  };
 
-  const toggleComments = (reviewId: string) => {
-    setExpandedComments((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(reviewId)) {
-        newSet.delete(reviewId);
-      } else {
-        newSet.add(reviewId);
-      }
-      return newSet;
-    });
+    await fetchHobbies();
   };
 
   return (
@@ -361,50 +240,50 @@ export default function HobbyReviewClient() {
         <p className="text-xs tracking-[0.16em] text-slate-500">HOBBY</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">취미</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
-          일상 속 취미에서 얻은 영감을 정리하는 공간입니다. 영화, 음악, 축구 등 다양한 장르에 대한 개인적 리뷰를 기록합니다.
+          다양한 취미 경험을 공유하고 공감하는 피드입니다. 마음에 드는 글에는 좋아요를 눌러보세요.
         </p>
       </header>
 
-      {/* 필터 버튼 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
-                selectedCategory === category
-                  ? 'border-slate-900 bg-slate-900 text-white shadow-md'
-                  : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-
-        {/* 로그인한 사용자만 글쓰기 버튼 표시 */}
-        {currentUser && (
-          <button
-            onClick={() => {
-              setFormOpen(!formOpen);
+      <div className="flex items-center justify-end">
+        <button
+          onClick={() => {
+            if (formOpen) {
+              setFormOpen(false);
               setEditingId(null);
-              setFormData({ category: '축구', title: '', rating: 5, comment: '' });
-            }}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50"
-          >
-            {formOpen && !editingId ? '취소' : '➕ 새 리뷰 쓰기'}
-          </button>
-        )}
+            } else {
+              setFormOpen(true);
+              setEditingId(null);
+              setFormData({
+                author_nickname: '',
+                category: '축구',
+                title: '',
+                rating: 5,
+                comment: '',
+              });
+            }
+          }}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50"
+        >
+          {formOpen ? '닫기' : '내 관심사 공유하기'}
+        </button>
       </div>
 
-      {/* 리뷰 추가/수정 폼 */}
-      {formOpen && currentUser && (
+      {/* 글쓰기 폼 */}
+      {formOpen && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-          <h3 className="mb-4 text-lg font-bold text-slate-900">
-            {editingId ? '리뷰 수정' : '새 리뷰 작성'}
-          </h3>
+          <h3 className="mb-4 text-lg font-bold text-slate-900">{editingId ? '관심사 수정하기' : '관심사 작성하기'}</h3>
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-900">닉네임</label>
+              <input
+                type="text"
+                value={formData.author_nickname}
+                onChange={(e) => setFormData({ ...formData, author_nickname: e.target.value })}
+                placeholder="표시할 닉네임"
+                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+
             {/* 카테고리 선택 */}
             <div>
               <label className="block text-sm font-medium text-slate-900">카테고리</label>
@@ -415,9 +294,11 @@ export default function HobbyReviewClient() {
                 }
                 className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm"
               >
-                <option value="축구">축구</option>
-                <option value="영화">영화</option>
-                <option value="음악">음악</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -461,11 +342,11 @@ export default function HobbyReviewClient() {
 
             {/* 버튼 */}
             <button
-              onClick={handleAddReview}
+              onClick={handleSubmit}
               disabled={submitting}
               className="w-full rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? (editingId ? '수정 중...' : '등록 중...') : editingId ? '수정 완료' : '등록'}
+              {submitting ? (editingId ? '수정 중...' : '등록 중...') : editingId ? '수정 저장' : '등록'}
             </button>
           </div>
         </div>
@@ -473,120 +354,58 @@ export default function HobbyReviewClient() {
 
       {/* 리뷰 카드 그리드 */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredReviews.map((review) => (
+        {hobbies.map((review) => (
           <article
             key={review.id}
             className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md"
           >
-            {/* 상단: 카테고리 뱃지 + 날짜 + 액션 버튼 */}
+            {/* 상단: 닉네임 + 카테고리 뱃지 */}
             <div className="mb-3 flex items-center justify-between">
-              <span
-                className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${
-                  categoryBadgeColor[review.category] || 'bg-slate-100 text-slate-800 border-slate-300'
-                }`}
-              >
-                {review.category}
-              </span>
+              <span className="text-sm font-semibold text-slate-700">{review.author_nickname}</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">
-                  {new Date(review.created_at).toLocaleDateString('ko-KR')}
+                <span
+                  className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${
+                    categoryBadgeColor[review.category] || 'bg-slate-100 text-slate-800 border-slate-300'
+                  }`}
+                >
+                  {review.category}
                 </span>
-                {currentUser && currentUser.id === review.author_id && (
-                  <div className="flex gap-1">
+
+                {(isAdmin || review.author_id === currentUserId) && (
+                  <>
                     <button
+                      type="button"
                       onClick={() => handleEditReview(review)}
-                      className="text-slate-400 hover:text-blue-500 transition-colors text-sm"
-                      title="수정"
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
                     >
-                      ✎
+                      수정
                     </button>
                     <button
-                      onClick={() => handleDeleteReview(review.id)}
-                      className="text-slate-400 hover:text-red-500 transition-colors text-lg"
-                      title="삭제"
+                      type="button"
+                      onClick={() => handleDeleteReview(review)}
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
                     >
-                      ✕
+                      삭제
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
 
-            {/* 제목 */}
+            {/* 중앙: 제목, 별점, 본문 */}
             <h3 className="text-lg font-bold text-slate-900 line-clamp-2">{review.title}</h3>
-
-            {/* 별점 */}
             <div className="my-3 text-xl">{renderStars(review.rating)}</div>
+            <p className="flex-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">{review.comment}</p>
 
-            {/* 소감 */}
-            <p className="flex-1 text-sm leading-6 text-slate-600 line-clamp-2">{truncateComment(review.comment)}</p>
-
-            {/* 평점 숫자 */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <p className="text-right text-xs text-slate-500">
-                평점 <span className="font-semibold text-slate-900">{review.rating}/5</span>
-              </p>
-            </div>
-
-            {/* 댓글 섹션 */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            {/* 하단: 좋아요 */}
+            <div className="mt-4 border-t border-slate-100 pt-4">
               <button
-                onClick={() => toggleComments(review.id)}
-                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                onClick={() => handleLike(review.id)}
+                disabled={likingIds.has(review.id)}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                💬 댓글 ({comments[review.id]?.length || 0})
+                ❤️ 좋아요 {review.likes_count || 0}
               </button>
-
-              {expandedComments.has(review.id) && (
-                <div className="mt-3 space-y-3">
-                  {/* 기존 댓글 */}
-                  {comments[review.id]?.map((comment) => (
-                    <div key={comment.id} className="rounded bg-slate-50 p-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-slate-700">
-                          {comment.author_id.slice(0, 8) || 'Anonymous'}
-                        </span>
-                        {currentUser && currentUser.id === comment.author_id && (
-                          <button
-                            onClick={() => handleDeleteComment(comment.id, review.id)}
-                            className="text-slate-400 hover:text-red-500 transition-colors"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                      <p className="mt-1 text-slate-600">{comment.text}</p>
-                      <span className="text-slate-400">
-                        {new Date(comment.created_at).toLocaleDateString('ko-KR')}
-                      </span>
-                    </div>
-                  ))}
-
-                  {/* 댓글 작성 */}
-                  {currentUser && (
-                    <div className="mt-3 flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="댓글을 작성하세요"
-                        value={newComments[review.id] || ''}
-                        onChange={(e) =>
-                          setNewComments((prev) => ({
-                            ...prev,
-                            [review.id]: e.target.value,
-                          }))
-                        }
-                        className="flex-1 rounded border border-slate-300 px-2 py-1 text-xs"
-                      />
-                      <button
-                        onClick={() => handleAddComment(review.id)}
-                        className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white hover:bg-slate-800"
-                      >
-                        등록
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </article>
         ))}
@@ -595,14 +414,14 @@ export default function HobbyReviewClient() {
       {/* 로딩 상태 */}
       {loading && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-          <p className="text-slate-600">리뷰를 불러오는 중입니다...</p>
+          <p className="text-slate-600">취미 피드를 불러오는 중입니다...</p>
         </div>
       )}
 
       {/* 결과 없음 */}
-      {!loading && filteredReviews.length === 0 && (
+      {!loading && hobbies.length === 0 && (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-          <p className="text-slate-600">해당 카테고리의 리뷰가 없습니다.</p>
+          <p className="text-slate-600">아직 등록된 관심사 글이 없습니다.</p>
         </div>
       )}
     </section>

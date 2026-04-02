@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { showGlobalToast } from "@/lib/toast";
 import { useCommunityPosts } from "@/app/hooks/useCommunityPosts";
 import type { User } from "@supabase/supabase-js";
 
@@ -75,6 +76,7 @@ export default function DailyPostBoard() {
     await createPost(title.trim(), content.trim());
     setTitle("");
     setContent("");
+    showGlobalToast("글이 등록되었습니다.");
   }
 
   async function handleDelete(postId: string, postAuthorId: string) {
@@ -82,6 +84,7 @@ export default function DailyPostBoard() {
       return;
     }
     await deletePost(postId, user, postAuthorId);
+    showGlobalToast("글이 삭제되었습니다.");
   }
 
   function startEdit(postId: string, postAuthorId: string, postTitle: string, postContent: string) {
