@@ -143,3 +143,20 @@ html[data-theme="dark"] .footer-icon {
 .toast-auto-hide {
   animation: toast-fade-out 3.4s ease forwards;
 }
+
+.ql-align-center img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ql-align-right img {
+  display: block;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.ql-align-justify img {
+  display: block;
+  width: 100%;
+}

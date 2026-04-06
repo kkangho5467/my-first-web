@@ -103,8 +103,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
       return;
     }
 
-    const { data } = await supabase.auth.getSession();
-    if (!data.session?.user) {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session?.user) {
+        event.preventDefault();
+        onAfterNavigate?.();
+        router.push("/auth?notice=login-required");
+        return;
+      }
+    } catch {
+      // 비로그인/세션 없음은 정상 흐름으로 처리
       event.preventDefault();
       onAfterNavigate?.();
       router.push("/auth?notice=login-required");

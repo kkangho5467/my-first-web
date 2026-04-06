@@ -48,8 +48,7 @@ export async function fetchCommentsByPostId(postId: string): Promise<PostComment
 
 export async function insertComment(postId: string, content: string, user: User | null): Promise<void> {
   if (!user) {
-    alert("로그인 후 댓글을 작성할 수 있습니다.");
-    throw new Error("User is not logged in");
+    return;
   }
 
   const authorName = user.email?.split("@")[0] || "익명사용자";

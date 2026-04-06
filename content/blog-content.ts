@@ -17,6 +17,11 @@ export type MockPost = {
   excerpt: string;
   author_name: string;
   author_id: string;
+  thumbnail_url?: string | null;
+  views?: number;
+  category?: string;
+  likes?: number;
+  created_at?: string;
 };
 
 export const homePosts: HomePost[] = [
