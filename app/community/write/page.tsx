@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import MainLayout from "@/app/components/MainLayout";
 import { createPostInSupabase } from "@/app/hooks/useCommunityPosts";
 import { supabase } from "@/lib/supabaseClient";
-import Quill from "quill";
+import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
@@ -13,10 +13,6 @@ const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as co
 type Category = (typeof CATEGORY_OPTIONS)[number];
 
 const QUILL_SIZE_OPTIONS = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "30px"] as const;
-
-const Size = Quill.import("attributors/style/size");
-Size.whitelist = [...QUILL_SIZE_OPTIONS];
-Quill.register(Size, true);
 
 async function uploadImageToSupabase(file: File): Promise<string> {
   // 확장자만 추출 (예: .png, .jpg)
@@ -48,7 +44,7 @@ export default function CommunityWritePage() {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
-  const quillRef = useRef<Quill | null>(null);
+  const quillRef = useRef<QuillType | null>(null);
   const hiddenFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -81,10 +77,16 @@ export default function CommunityWritePage() {
   useEffect(() => {
     let isMounted = true;
 
-    function setupEditor() {
+    async function setupEditor() {
       if (!isMounted || !editorRef.current || quillRef.current) {
         return;
       }
+
+      const Quill = (await import("quill")).default;
+
+      const Size = Quill.import("attributors/style/size");
+      Size.whitelist = [...QUILL_SIZE_OPTIONS];
+      Quill.register(Size, true);
 
       // 개발 모드(HMR/StrictMode)에서 툴바가 중복 생성되는 경우를 방지한다.
       const editorParent = editorRef.current.parentElement;
@@ -131,7 +133,7 @@ export default function CommunityWritePage() {
       quillRef.current = editor;
     }
 
-    setupEditor();
+    void setupEditor();
 
     return () => {
       isMounted = false;
