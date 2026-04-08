@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/app/components/MainLayout";
 import { createPostInSupabase } from "@/app/hooks/useCommunityPosts";
+import { getSafeSession } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
@@ -51,19 +52,14 @@ export default function CommunityWritePage() {
     let isMounted = true;
 
     async function guardWritePageAccess() {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (!isMounted) {
-          return;
-        }
+      const session = await getSafeSession();
 
-        if (error || !data.session?.user) {
-          router.push("/auth?notice=login-required");
-        }
-      } catch {
-        if (isMounted) {
-          router.push("/auth?notice=login-required");
-        }
+      if (!isMounted) {
+        return;
+      }
+
+      if (!session?.user) {
+        router.push("/auth?notice=login-required");
       }
     }
 
@@ -200,13 +196,8 @@ export default function CommunityWritePage() {
   }
 
   async function handleSubmit() {
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error || !data.session?.user) {
-        router.push("/auth?notice=login-required");
-        return;
-      }
-    } catch {
+    const session = await getSafeSession();
+    if (!session?.user) {
       router.push("/auth?notice=login-required");
       return;
     }

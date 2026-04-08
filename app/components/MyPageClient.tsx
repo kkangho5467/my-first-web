@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
 
 type CurrentUserInfo = {
@@ -35,23 +36,23 @@ export default function MyPageClient() {
     let isMounted = true;
 
     async function loadUser() {
-      const { data, error } = await supabase.auth.getUser();
+      const user = await getSafeUser();
 
       if (!isMounted) {
         return;
       }
 
-      if (error || !data.user) {
+      if (!user) {
         router.push("/");
         router.refresh();
         return;
       }
 
-      const currentNickname = typeof data.user.user_metadata?.nickname === "string" ? data.user.user_metadata.nickname : "";
+      const currentNickname = typeof user.user_metadata?.nickname === "string" ? user.user_metadata.nickname : "";
 
       setUserInfo({
-        email: data.user.email ?? "",
-        username: getUsernameFromEmail(data.user.email),
+        email: user.email ?? "",
+        username: getUsernameFromEmail(user.email),
         nickname: currentNickname,
       });
       setNewNickname(currentNickname);

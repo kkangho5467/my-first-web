@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getSafeSession, getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { showGlobalToast } from "@/lib/toast";
 import { useCommunityPosts } from "@/app/hooks/useCommunityPosts";
@@ -81,39 +82,10 @@ export default function DailyPostBoard() {
     let isMounted = true;
 
     async function loadUser() {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
-          const message = error.message?.toLowerCase() || "";
-          const isSessionMissing = message.includes("auth session missing");
-          const isLockConflict = message.includes("lock");
+      const nextUser = await getSafeUser();
 
-          // 비로그인/세션 없음/락 충돌은 정상 흐름으로 간주하고 조용히 null 처리
-          if (!isSessionMissing && !isLockConflict) {
-            console.warn("Failed to load user:", error);
-          }
-
-          if (isMounted) {
-            setUser(null);
-          }
-          return;
-        }
-
-        if (isMounted) {
-          setUser(data.user);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const isSessionMissing = message.toLowerCase().includes("auth session missing");
-        const isLockConflict = message.toLowerCase().includes("lock");
-
-        if (!isSessionMissing && !isLockConflict) {
-          console.warn("Failed to load user:", error);
-        }
-
-        if (isMounted) {
-          setUser(null);
-        }
+      if (isMounted) {
+        setUser(nextUser);
       }
     }
 
@@ -240,13 +212,8 @@ export default function DailyPostBoard() {
   }
 
   async function handleClickWriteButton() {
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error || !data.session?.user) {
-        router.push("/auth?notice=login-required");
-        return;
-      }
-    } catch {
+    const session = await getSafeSession();
+    if (!session?.user) {
       router.push("/auth?notice=login-required");
       return;
     }

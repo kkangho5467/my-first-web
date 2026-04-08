@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
 import type { User } from "@supabase/supabase-js";
+import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   fetchCommunityPosts, 
@@ -70,26 +71,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     let isMounted = true;
 
     async function loadUser() {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
-          throw error;
-        }
+      const user = await getSafeUser();
 
-        if (isMounted) {
-          setCurrentUser(data.user);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        const isLockConflict = message.toLowerCase().includes("lock");
-
-        if (!isLockConflict) {
-          console.error("Failed to load current user:", error);
-        }
-
-        if (isMounted) {
-          setCurrentUser(null);
-        }
+      if (isMounted) {
+        setCurrentUser(user);
       }
     }
 

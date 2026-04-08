@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getSafeSession } from '@/lib/supabaseAuth';
 import { supabase } from '@/lib/supabaseClient';
 
 interface HobbyItem {
@@ -63,8 +64,8 @@ export default function HobbyReviewClient() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const sessionUser = sessionData.session?.user;
+        const session = await getSafeSession();
+        const sessionUser = session?.user;
         setCurrentUserId(sessionUser?.id ?? null);
 
         const emailPrefix = sessionUser?.email?.split('@')[0] || '';

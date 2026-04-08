@@ -1,0 +1,227 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { MockPost } from "@/content/blog-content";
+import { fetchCommunityPosts } from "@/app/hooks/useCommunityPosts";
+import { supabase } from "@/lib/supabaseClient";
+
+type GuestbookItem = {
+  id: number;
+  nickname: string;
+  message: string;
+};
+
+type HobbyLatestItem = {
+  id: string;
+  category: string;
+  title: string;
+  comment: string;
+  author_nickname: string;
+  thumbnail_url?: string | null;
+};
+
+const initialGuestbook: GuestbookItem[] = [
+  { id: 1, nickname: "강호2", message: "블로그 자주 보고 있어요. 응원합니다." },
+  { id: 2, nickname: "블루팬", message: "커뮤니티 글 잘 보고 갑니다." },
+  { id: 3, nickname: "프론트입문", message: "UI 구성 참고가 많이 됩니다." },
+];
+
+function extractFirstImageUrl(html: string): string | null {
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match?.[1] ?? null;
+}
+
+export default function HomeDashboardGrid() {
+  const [guestbookItems, setGuestbookItems] = useState<GuestbookItem[]>(initialGuestbook);
+  const [nickname, setNickname] = useState("");
+  const [message, setMessage] = useState("");
+  const [latestCommunityPosts, setLatestCommunityPosts] = useState<MockPost[]>([]);
+  const [latestHobbyPosts, setLatestHobbyPosts] = useState<HobbyLatestItem[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLatestPanels() {
+      try {
+        const [communityPosts, hobbyResult] = await Promise.all([
+          fetchCommunityPosts(),
+          supabase
+            .from("hobbies")
+            .select("id, category, title, comment, author_nickname")
+            .order("created_at", { ascending: false })
+            .limit(4),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setLatestCommunityPosts(communityPosts.slice(0, 4));
+        setLatestHobbyPosts((hobbyResult.data ?? []) as HobbyLatestItem[]);
+      } catch (error) {
+        if (isMounted) {
+          setLatestCommunityPosts([]);
+          setLatestHobbyPosts([]);
+        }
+      }
+    }
+
+    void loadLatestPanels();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function handleSubmitGuestbook(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedNickname = nickname.trim();
+    const trimmedMessage = message.trim();
+
+    if (!trimmedNickname || !trimmedMessage) {
+      return;
+    }
+
+    setGuestbookItems((prev) => [
+      {
+        id: Date.now(),
+        nickname: trimmedNickname,
+        message: trimmedMessage,
+      },
+      ...prev,
+    ]);
+
+    setNickname("");
+    setMessage("");
+  }
+
+  return (
+    <section className="mx-auto w-full max-w-7xl">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <section className="space-y-6 lg:col-span-6">
+          <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">주인장이 엄선한 영상</h2>
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="aspect-video w-full">
+                <iframe
+                  className="h-full w-full"
+                  src="https://www.youtube.com/embed/MMFBwM5xbqU?autoplay=0"
+                  title="오늘의 영상"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <h2 className="mb-3 text-lg font-semibold text-slate-900">한 줄 방명록</h2>
+            <div className="h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <ul className="space-y-2">
+                {guestbookItems.map((item) => (
+                  <li key={item.id} className="rounded-md bg-white px-3 py-2 text-sm text-slate-700">
+                    <span className="font-semibold text-slate-900">{item.nickname}</span>
+                    <span className="mx-1 text-slate-400">:</span>
+                    <span>{item.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <form onSubmit={handleSubmitGuestbook} className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+                type="text"
+                placeholder="닉네임"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 focus:ring"
+              />
+              <input
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                type="text"
+                placeholder="짧은 글을 남겨주세요"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 focus:ring"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+              >
+                전송
+              </button>
+            </form>
+          </article>
+        </section>
+
+        <section className="rounded-xl border border-sky-200 bg-sky-100 p-3 shadow-sm lg:col-span-3 lg:self-start lg:min-h-[390px] lg:max-h-[390px]">
+          <h2 className="text-base font-semibold text-slate-900">커뮤니티 최신 글</h2>
+          {latestCommunityPosts.length > 0 ? (
+            <ul className="mt-3 space-y-2 overflow-y-auto lg:max-h-[320px]">
+              {latestCommunityPosts.map((post) => (
+                <li key={post.id} className="rounded-md bg-white/90 p-2 shadow-sm">
+                  <div className="flex items-start gap-2">
+                    {post.thumbnail_url ? (
+                      <img
+                        src={post.thumbnail_url}
+                        alt="커뮤니티 썸네일"
+                        className="h-10 w-10 shrink-0 rounded-md border border-sky-200 object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 shrink-0 rounded-md border border-sky-200 bg-sky-50" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+                        {post.category ?? "자유수다"}
+                      </span>
+                      <Link href={`/posts/${post.id}`} className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                        {post.title}
+                      </Link>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">{post.excerpt.replace(/<[^>]*>/g, "")}</p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-lime-200 bg-lime-100 p-3 shadow-sm lg:col-span-3 lg:self-start lg:min-h-[390px] lg:max-h-[390px]">
+          <h2 className="text-base font-semibold text-slate-900">취미 탭 최신 글</h2>
+          {latestHobbyPosts.length > 0 ? (
+            <ul className="mt-3 space-y-2 overflow-y-auto lg:max-h-[320px]">
+              {latestHobbyPosts.map((item) => (
+                <li key={item.id} className="rounded-md border border-lime-200 bg-white p-2 shadow-sm">
+                  <div className="flex items-start gap-2">
+                    {item.thumbnail_url || extractFirstImageUrl(item.comment) ? (
+                      <img
+                        src={item.thumbnail_url || extractFirstImageUrl(item.comment) || ""}
+                        alt="취미 썸네일"
+                        className="h-10 w-10 shrink-0 rounded-md border border-lime-200 object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 shrink-0 rounded-md border border-lime-200 bg-lime-50" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <span className="inline-flex rounded-full border border-lime-200 bg-lime-50 px-1.5 py-0.5 text-[10px] font-medium text-lime-700">
+                        {item.category}
+                      </span>
+                      <Link href="/hobby" className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                        {item.title}
+                      </Link>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">작성자: {item.author_nickname || "익명"}</p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
+          )}
+        </section>
+      </div>
+    </section>
+  );
+}

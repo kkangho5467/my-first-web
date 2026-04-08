@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
+import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
 import type { User } from "@supabase/supabase-js";
 
@@ -153,8 +154,7 @@ export async function createPostInSupabase(
 ): Promise<void> {
   try {
     // 현재 로그인한 유저 정보 가져오기
-    const { data, error: userError } = await supabase.auth.getUser();
-    const user = data.user;
+    const user = await getSafeUser();
 
     // 유저 정보 확인
     if (!user) {
