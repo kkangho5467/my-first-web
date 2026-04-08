@@ -1,52 +1,37 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import MainLayout from "@/app/components/MainLayout";
-import { createPostInSupabase } from "@/app/hooks/useCommunityPosts";
+import QuillEditor from "@/app/components/QuillEditor";
+import { createPostInSupabase, fetchPostById, updatePostInSupabase } from "@/app/hooks/useCommunityPosts";
 import { getSafeSession } from "@/lib/supabaseAuth";
-import { supabase } from "@/lib/supabaseClient";
-import type QuillType from "quill";
-import "quill/dist/quill.snow.css";
+import { uploadImageToSupabase } from "@/lib/uploadImageToSupabase";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
 
 type Category = (typeof CATEGORY_OPTIONS)[number];
 
-const QUILL_SIZE_OPTIONS = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "30px"] as const;
-
-async function uploadImageToSupabase(file: File): Promise<string> {
-  // 확장자만 추출 (예: .png, .jpg)
-  const extension = file.name.substring(file.name.lastIndexOf('.')) || '';
-  
-  // 순수 영문과 숫자로만 이루어진 고유한 파일명 생성
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}${extension}`;
-
-  try {
-    const { data, error } = await supabase.storage.from("images").upload(fileName, file);
-
-    if (error) {
-      console.error("Image upload error:", error);
-      throw error;
-    }
-
-    const { data: publicUrlData } = supabase.storage.from("images").getPublicUrl(data.path);
-    return publicUrlData.publicUrl;
-  } catch (error) {
-    console.error("Failed to upload image:", error);
-    throw new Error("이미지 업로드에 실패했습니다.");
-  }
-}
-
 export default function CommunityWritePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+  const editingPostId = searchParams.get("id");
+  const isEditMode = mode === "edit" && Boolean(editingPostId);
   const [category, setCategory] = useState<Category>("자유수다");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const editorRef = useRef<HTMLDivElement | null>(null);
-  const quillRef = useRef<QuillType | null>(null);
-  const hiddenFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+
+  function isAdminByUserId(userId: string | undefined, email?: string | null) {
+    if (!userId && !email) {
+      return false;
+    }
+
+    const emailPrefix = email?.split("@")[0];
+    return emailPrefix === "admin5467" || emailPrefix === "kkangho5467" || userId === "admin5467" || userId === "kkangho5467";
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -71,110 +56,61 @@ export default function CommunityWritePage() {
   }, [router]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function setupEditor() {
-      if (!isMounted || !editorRef.current || quillRef.current) {
-        return;
-      }
-
-      const Quill = (await import("quill")).default;
-
-      const Size = Quill.import("attributors/style/size");
-      Size.whitelist = [...QUILL_SIZE_OPTIONS];
-      Quill.register(Size, true);
-
-      // 개발 모드(HMR/StrictMode)에서 툴바가 중복 생성되는 경우를 방지한다.
-      const editorParent = editorRef.current.parentElement;
-      if (editorParent) {
-        editorParent.querySelectorAll(".ql-toolbar").forEach((toolbarElement) => {
-          toolbarElement.remove();
-        });
-      }
-      editorRef.current.innerHTML = "";
-
-      const editor = new Quill(editorRef.current, {
-        theme: "snow",
-        placeholder: "본문을 입력하세요",
-        modules: {
-          toolbar: [
-            [{ size: [...QUILL_SIZE_OPTIONS] }],
-            ["bold", "italic", "underline"],
-            [{ align: [] }],
-            ["link", "image"],
-            [{ list: "ordered" }, { list: "bullet" }],
-          ],
-        },
-      } as any);
-
-      // 커스텀 이미지 핸들러
-      const imageHandler = () => {
-        if (hiddenFileInputRef.current) {
-          hiddenFileInputRef.current.click();
-        }
-      };
-
-      const toolbar = editor.getModule("toolbar");
-      if (toolbar) {
-        toolbar.addHandler("image", imageHandler);
-      }
-
-      // 기본 폰트 크기를 14px로 지정해 라벨이 Normal로 보이지 않게 한다.
-      editor.format("size", "14px");
-
-      editor.on("text-change", () => {
-        setContent(editor.root.innerHTML);
-      });
-
-      quillRef.current = editor;
-    }
-
-    void setupEditor();
-
-    return () => {
-      isMounted = false;
-      quillRef.current = null;
-
-      const editorParent = editorRef.current?.parentElement;
-      if (editorParent) {
-        editorParent.querySelectorAll(".ql-toolbar").forEach((toolbarElement) => {
-          toolbarElement.remove();
-        });
-      }
-
-      if (editorRef.current) {
-        editorRef.current.innerHTML = "";
-      }
-    };
-  }, []);
-
-  async function handleImageSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = event.target.files;
-
-    if (!files || files.length === 0) {
+    if (!isEditMode || !editingPostId) {
       return;
     }
 
-    const file = files[0];
+    const postId = editingPostId;
 
-    try {
-      const publicUrl = await uploadImageToSupabase(file);
+    let isMounted = true;
 
-      if (quillRef.current) {
-        const range = quillRef.current.getSelection();
-        if (range) {
-          quillRef.current.insertEmbed(range.index, "image", publicUrl);
-          quillRef.current.setSelection(range.index + 1, 0);
+    async function loadDraft() {
+      setIsLoadingDraft(true);
+
+      try {
+        const session = await getSafeSession();
+
+        if (!session?.user) {
+          router.push("/auth?notice=login-required");
+          return;
+        }
+
+        const post = await fetchPostById(postId);
+
+        if (!post) {
+          alert("게시글을 찾을 수 없습니다.");
+          router.push("/daily");
+          return;
+        }
+
+        const canEdit = isAdminByUserId(session.user.id, session.user.email) || session.user.id === post.author_id;
+
+        if (!canEdit) {
+          alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+          router.push(`/posts/${postId}`);
+          return;
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setCategory((post.category as Category) || "자유수다");
+        setTitle(post.title || "");
+        setContent(post.content || "");
+      } finally {
+        if (isMounted) {
+          setIsLoadingDraft(false);
         }
       }
-    } catch (error) {
-      console.error("Failed to handle image:", error);
-      alert("이미지 업로드에 실패했습니다.");
     }
 
-    // 같은 파일을 다시 선택할 수 있게 input 초기화
-    event.target.value = "";
-  }
+    void loadDraft();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [editingPostId, isEditMode, router]);
 
   function extractThumbnailUrl(html: string): string | null {
     try {
@@ -202,6 +138,8 @@ export default function CommunityWritePage() {
       return;
     }
 
+    const currentEditingPostId = editingPostId ?? "";
+
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
 
@@ -218,25 +156,43 @@ export default function CommunityWritePage() {
     setIsSubmitting(true);
     try {
       const thumbnailUrl = extractThumbnailUrl(trimmedContent);
-      console.log("Extracted thumbnail URL:", thumbnailUrl);
-      await createPostInSupabase(trimmedTitle, trimmedContent, category, thumbnailUrl);
-      alert("글이 등록되었습니다.");
-      router.push("/daily");
+
+      if (isEditMode && currentEditingPostId) {
+        await updatePostInSupabase(currentEditingPostId, trimmedTitle, trimmedContent, category, thumbnailUrl);
+        alert("글이 수정되었습니다.");
+        router.push(`/posts/${currentEditingPostId}`);
+      } else {
+        await createPostInSupabase(trimmedTitle, trimmedContent, category, thumbnailUrl);
+        alert("글이 등록되었습니다.");
+        router.push("/daily");
+      }
     } catch (error) {
-      console.error("Failed to create post:", error instanceof Error ? error.message : error);
-      alert("글 등록에 실패했습니다.");
+      console.error("Failed to save post:", error instanceof Error ? error.message : error);
+      alert(isEditMode ? "글 수정에 실패했습니다." : "글 등록에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  const pageTitle = isEditMode ? "글 수정" : "커뮤니티 글 작성";
+  const pageDescription = isEditMode
+    ? "기존 게시글 내용을 수정하고 저장하세요."
+    : "말머리를 선택하고 제목을 입력해 게시글 초안을 준비하세요.";
+  const submitLabel = isEditMode ? "수정하기" : "등록하기";
+  const submitPendingLabel = isEditMode ? "수정 중..." : "등록 중...";
+  const cancelTarget = isEditMode && editingPostId ? `/posts/${editingPostId}` : "/daily";
+
   return (
     <MainLayout>
       <section className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-8">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">커뮤니티 글 작성</h1>
-          <p className="mt-2 text-sm text-slate-500">말머리를 선택하고 제목을 입력해 게시글 초안을 준비하세요.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{pageTitle}</h1>
+          <p className="mt-2 text-sm text-slate-500">{pageDescription}</p>
         </header>
+
+        {isEditMode && isLoadingDraft ? (
+          <p className="mb-6 text-sm text-slate-500">기존 게시글을 불러오는 중입니다...</p>
+        ) : null}
 
         <div className="space-y-6">
           <div className="space-y-2">
@@ -274,24 +230,20 @@ export default function CommunityWritePage() {
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">본문</label>
             <div className="overflow-hidden rounded-xl border border-slate-300 [&_.ql-container]:min-h-[52vh] [&_.ql-container]:border-0 [&_.ql-editor]:min-h-[52vh] [&_.ql-toolbar]:border-0 [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-slate-300 md:[&_.ql-container]:min-h-[60vh] md:[&_.ql-editor]:min-h-[60vh]">
-              <div ref={editorRef} />
+              <QuillEditor
+                value={content}
+                onChange={setContent}
+                placeholder="본문을 입력하세요"
+                onImageUpload={uploadImageToSupabase}
+              />
             </div>
           </div>
         </div>
 
-        {/* 숨겨진 파일 입력 */}
-        <input
-          ref={hiddenFileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageSelect}
-          style={{ display: "none" }}
-        />
-
         <div className="mt-8 flex justify-end gap-3">
           <button
             type="button"
-            onClick={() => router.push("/daily")}
+            onClick={() => router.push(cancelTarget)}
             disabled={isSubmitting}
             className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -303,95 +255,11 @@ export default function CommunityWritePage() {
             disabled={isSubmitting || !title.trim() || !content.trim()}
             className="rounded-xl border border-slate-900 bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {isSubmitting ? "등록 중..." : "등록하기"}
+            {isSubmitting ? submitPendingLabel : submitLabel}
           </button>
         </div>
       </section>
 
-      <style jsx global>{`
-        .ql-editor img {
-          display: block;
-          max-width: 100%;
-          height: auto;
-          margin: 0 0 0 0;
-        }
-
-        .ql-editor .ql-align-center img {
-          margin-left: auto;
-          margin-right: auto;
-        }
-
-        .ql-editor .ql-align-right img {
-          margin-left: auto;
-          margin-right: 0;
-        }
-
-        .ql-editor .ql-align-justify img {
-          width: 100%;
-        }
-
-        .ql-snow .ql-picker.ql-size {
-          width: 74px;
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label {
-          padding-right: 18px;
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label::before {
-          font-weight: 600;
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-options {
-          max-height: 180px;
-          overflow-y: auto;
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item::before {
-          content: "14px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='10px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='10px']::before {
-          content: "10px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='12px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='12px']::before {
-          content: "12px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='14px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='14px']::before {
-          content: "14px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='16px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='16px']::before {
-          content: "16px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='18px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='18px']::before {
-          content: "18px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='20px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='20px']::before {
-          content: "20px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='24px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='24px']::before {
-          content: "24px";
-        }
-
-        .ql-snow .ql-picker.ql-size .ql-picker-label[data-value='30px']::before,
-        .ql-snow .ql-picker.ql-size .ql-picker-item[data-value='30px']::before {
-          content: "30px";
-        }
-      `}</style>
     </MainLayout>
   );
 }

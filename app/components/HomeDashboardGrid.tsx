@@ -22,9 +22,9 @@ type HobbyLatestItem = {
 };
 
 const initialGuestbook: GuestbookItem[] = [
-  { id: 1, nickname: "강호2", message: "블로그 자주 보고 있어요. 응원합니다." },
-  { id: 2, nickname: "블루팬", message: "커뮤니티 글 잘 보고 갑니다." },
-  { id: 3, nickname: "프론트입문", message: "UI 구성 참고가 많이 됩니다." },
+  { id: 1, nickname: "강호2", message: "아직 구현되지 않았습니다" },
+  { id: 2, nickname: "블루팬", message: "현재 한 줄 방명록은 Supabase 연동하지 않았습니다" },
+  { id: 3, nickname: "프론트입문", message: "한 줄 방명록을 제외한 커뮤니티와 취미는 연동되어 있습니다" },
 ];
 
 function extractFirstImageUrl(html: string): string | null {

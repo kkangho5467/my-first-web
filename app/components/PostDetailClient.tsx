@@ -8,15 +8,12 @@ import type { User } from "@supabase/supabase-js";
 import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { 
-  fetchCommunityPosts, 
-  updatePostInSupabase, 
   deletePostInSupabase,
   fetchPostById,
   incrementPostViews 
 } from "@/app/hooks/useCommunityPosts";
 import { deleteMyComment, fetchCommentsByPostId, insertComment, type PostComment } from "@/app/hooks/usePostComments";
 import PostDetailSkeleton from "./PostDetailSkeleton";
-import "react-quill/dist/quill.snow.css";
 
 type PostDetailClientProps = {
   id: string;
@@ -56,9 +53,6 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [post, setPost] = useState<MockPost | null>(initialPost);
   const [isLoadingPost, setIsLoadingPost] = useState(!initialPost);
-  const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editingTitle, setEditingTitle] = useState("");
-  const [editingExcerpt, setEditingExcerpt] = useState("");
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -207,59 +201,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    setEditingTitle(post.title);
-    setEditingExcerpt(post.excerpt);
-    setIsEditingPost(true);
-  }
-
-  function handleCancelPostEdit() {
-    setIsEditingPost(false);
-    setEditingTitle("");
-    setEditingExcerpt("");
-  }
-
-  async function handleSavePostEdit() {
-    if (!post) {
-      return;
-    }
-
-    // 권한 확인
-    if (!isAdmin(currentUser) && currentUser?.id !== post.author_id) {
-      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
-      return;
-    }
-
-    const nextTitle = editingTitle.trim();
-    const nextExcerpt = editingExcerpt.trim();
-
-    if (!nextTitle || !nextExcerpt) {
-      return;
-    }
-
-    if (!window.confirm("글을 저장하시겠습니까?")) {
-      return;
-    }
-
-    const updatedPost: MockPost = {
-      ...post,
-      title: nextTitle,
-      excerpt: nextExcerpt,
-    };
-
-    await updatePostInSupabase(post.id, updatedPost.title, updatedPost.excerpt);
-
-    try {
-      const posts = await fetchCommunityPosts();
-      const matched = posts.find((item) => item.id === post.id) ?? updatedPost;
-      setPost(matched);
-    } catch (error) {
-      console.error("Failed to refetch posts after update:", error);
-      setPost(updatedPost);
-    }
-
-    setIsEditingPost(false);
-    setEditingTitle("");
-    setEditingExcerpt("");
+    router.push(`/community/write?mode=edit&id=${post.id}`);
   }
 
   async function handleDeletePost() {
@@ -387,57 +329,6 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
           </button>
         </div>
       </div>
-
-      {/* 수정 폼 */}
-      {canEditPost && isEditingPost && (
-        <section className="mx-auto w-full max-w-4xl rounded-xl border border-slate-200 bg-white p-5 md:p-6">
-          <h2 className="mb-4 text-xl font-semibold text-slate-900">게시글 수정</h2>
-          <form onSubmit={(e) => { e.preventDefault(); handleSavePostEdit(); }} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="edit-post-title" className="text-sm font-medium text-slate-700">
-                제목
-              </label>
-              <input
-                id="edit-post-title"
-                type="text"
-                value={editingTitle}
-                onChange={(event) => setEditingTitle(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="edit-post-excerpt" className="text-sm font-medium text-slate-700">
-                내용
-              </label>
-              <textarea
-                id="edit-post-excerpt"
-                value={editingExcerpt}
-                onChange={(event) => setEditingExcerpt(event.target.value)}
-                rows={6}
-                className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                disabled={editingTitle.trim().length === 0 || editingExcerpt.trim().length === 0}
-                className="rounded border border-slate-300 bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-              >
-                저장
-              </button>
-              <button
-                type="button"
-                onClick={handleCancelPostEdit}
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100"
-              >
-                취소
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
         <h2 className="text-xl font-semibold text-slate-900">댓글</h2>

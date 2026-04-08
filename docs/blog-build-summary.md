@@ -404,6 +404,77 @@
 	- app/components/FooterEmailLink.tsx
 	- app/globals.css
 
+### 2026-04-02
+- 사용자 명령 요약:
+	- 로그인 기능과 커뮤니티 기능을 실제 화면 흐름에 맞게 구현 요청
+	- 모바일 반응형 네비게이션 메뉴 추가 요청
+	- 취미 후기와 댓글 기능 추가 요청
+	- 프로필/토스트 UX를 더 자연스럽게 다듬는 요청
+- 결과:
+	- `AuthForm`, `AuthStatusControl`, `MyPageClient`를 중심으로 로그인/마이페이지 흐름 정리
+	- `DailyPostBoard`, `PostDetailClient`, `useCommunityPosts`, `usePostComments`에 댓글·작성자 정보·확인 메시지 흐름 추가
+	- `MainLayout`에 모바일 햄버거 메뉴를 붙여 작은 화면에서도 메뉴 탐색이 가능하게 개선
+	- `HobbyReviewClient`와 `app/hobby/page.tsx`를 추가해 취미 후기/댓글 흐름 구현
+	- 토스트/프리뷰/프로필 관련 UX를 정리하고 전역 사용자 저장소를 도입
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/auth/page.tsx
+	- app/components/AuthForm.tsx
+	- app/components/AuthStatusControl.tsx
+	- app/components/DailyPostBoard.tsx
+	- app/components/MainLayout.tsx
+	- app/components/MyPageClient.tsx
+	- app/components/PostDetailClient.tsx
+	- app/components/PostDetailSkeleton.tsx
+	- app/components/RecentPostList.tsx
+	- app/components/HobbyReviewClient.tsx
+	- app/hooks/useCommunityPosts.ts
+	- app/hooks/usePostComments.ts
+	- app/hobby/page.tsx
+	- app/mypage/page.tsx
+	- app/page.tsx
+	- app/globals.css
+	- app/loading.tsx
+	- lib/toast.ts
+	- next.config.ts
+	- package.json
+	- package-lock.json
+	- public/profile-placeholder.svg
+	- store/useUserStore.ts
+
+### 2026-04-06
+- 사용자 명령 요약:
+	- 커뮤니티 작성 페이지 SSR 빌드 오류 수정 요청
+	- 패키지 잠금 파일을 재생성하고 의존성 충돌을 무시하는 방식으로 재설치 요청
+- 결과:
+	- `app/community/write/page.tsx`의 세션 접근을 정리해 SSR 빌드 오류를 수정
+	- `package-lock.json`을 `legacy-peer-deps` 기준으로 다시 생성하고 업데이트
+	- 빌드 중 의존성 충돌 때문에 생기던 설치/잠금 문제를 정리
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/community/write/page.tsx
+	- package-lock.json
+
+### 2026-04-08
+- 사용자 명령 요약:
+	- Ch5: 블로그 목록/상세/작성 페이지 정리 요청
+- 결과:
+	- 커뮤니티 작성/목록/상세 흐름에서 세션 확인 로직을 안전한 helper로 분리
+	- 홈 대시보드, 댓글, 마이페이지, 취미 후기, 게시글 상세 쪽에서 `safe session/user` 접근을 통일
+	- `lib/supabaseAuth.ts`를 추가해 세션 조회를 재사용 가능한 공용 함수로 정리
+	- 커뮤니티/취미/마이페이지/상세 페이지 전반에 걸친 빌드 안정성을 높임
+	- 타입/문법 오류 없음 확인
+- 변경 파일:
+	- app/community/write/page.tsx
+	- app/components/DailyPostBoard.tsx
+	- app/components/HobbyReviewClient.tsx
+	- app/components/HomeDashboardGrid.tsx
+	- app/components/MyPageClient.tsx
+	- app/components/PostDetailClient.tsx
+	- app/hooks/useCommunityPosts.ts
+	- app/page.tsx
+	- lib/supabaseAuth.ts
+
 ### YYYY-MM-DD HH:mm
 - 사용자 명령 요약:
 	- (요청 핵심 1~2줄)

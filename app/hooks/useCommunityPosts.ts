@@ -199,8 +199,32 @@ export async function createPostInSupabase(
   }
 }
 
-export async function updatePostInSupabase(postId: string, title: string, content: string): Promise<void> {
-  const { error } = await supabase.from("posts").update({ title, content }).eq("id", postId);
+export async function updatePostInSupabase(
+  postId: string,
+  title: string,
+  content: string,
+  category?: string,
+  thumbnailUrl?: string | null
+): Promise<void> {
+  const payload: {
+    title: string;
+    content: string;
+    category?: string;
+    thumbnail_url?: string | null;
+  } = {
+    title,
+    content,
+  };
+
+  if (category !== undefined) {
+    payload.category = category;
+  }
+
+  if (thumbnailUrl !== undefined) {
+    payload.thumbnail_url = thumbnailUrl;
+  }
+
+  const { error } = await supabase.from("posts").update(payload).eq("id", postId);
 
   if (error) {
     console.error("Failed to update post:", error);

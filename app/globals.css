@@ -35,11 +35,21 @@ html[data-theme="light"] {
 }
 
 html[data-theme="dark"] {
-  --background: #0f172a;
-  --foreground: #e2e8f0;
+  --background: #020617;
+  --foreground: #f8fafc;
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 38%), #020617;
+  color: #f8fafc;
 }
 
 html[data-theme="dark"] .bg-slate-50 {
+  background-color: #020617 !important;
+}
+
+html[data-theme="dark"] .bg-slate-100 {
   background-color: #0f172a !important;
 }
 
@@ -51,19 +61,72 @@ html[data-theme="dark"] .border-slate-200 {
   border-color: #334155 !important;
 }
 
+html[data-theme="dark"] .border-slate-300 {
+  border-color: #475569 !important;
+}
+
+html[data-theme="dark"] .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+html[data-theme="dark"] .border-gray-300 {
+  border-color: #475569 !important;
+}
+
 html[data-theme="dark"] .text-slate-900 {
   color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .text-slate-800 {
+  color: #e2e8f0 !important;
 }
 
 html[data-theme="dark"] .text-slate-700,
 html[data-theme="dark"] .text-slate-600,
 html[data-theme="dark"] .text-slate-500,
 html[data-theme="dark"] .text-slate-400 {
-  color: #94a3b8 !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .text-gray-800 {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .text-gray-700,
+html[data-theme="dark"] .text-gray-600,
+html[data-theme="dark"] .text-gray-500,
+html[data-theme="dark"] .text-gray-400 {
+  color: #cbd5e1 !important;
 }
 
 html[data-theme="dark"] .hover\:bg-slate-100:hover {
   background-color: #1f2937 !important;
+}
+
+html[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: #1f2937 !important;
+}
+
+html[data-theme="dark"] .hover\:text-slate-900:hover,
+html[data-theme="dark"] .hover\:text-gray-900:hover {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .prose {
+  color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .prose h1,
+html[data-theme="dark"] .prose h2,
+html[data-theme="dark"] .prose h3,
+html[data-theme="dark"] .prose strong,
+html[data-theme="dark"] .prose a,
+html[data-theme="dark"] .prose code {
+  color: #f8fafc !important;
 }
 
 html[data-theme="dark"] .nav-menu-link {

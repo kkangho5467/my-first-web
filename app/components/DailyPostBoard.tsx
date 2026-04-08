@@ -65,16 +65,12 @@ function getCategoryFilterButtonClass(category: string, isActive: boolean): stri
 }
 
 export default function DailyPostBoard() {
-  const { posts, updatePost, deletePost, deletePosts } = useCommunityPosts([]);
+  const { posts, deletePost, deletePosts } = useCommunityPosts([]);
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [editingAuthorId, setEditingAuthorId] = useState<string>("");
-  const [editingTitle, setEditingTitle] = useState("");
-  const [editingContent, setEditingContent] = useState("");
 
   const isCurrentUserAdmin = isAdmin(user);
 
@@ -113,24 +109,14 @@ export default function DailyPostBoard() {
     showGlobalToast("글이 삭제되었습니다.");
   }
 
-  function startEdit(postId: string, postAuthorId: string, postTitle: string, postContent: string) {
+  function goToEditPage(postId: string, postAuthorId: string) {
     // 권한 확인
     if (!isAdmin(user) && user?.id !== postAuthorId) {
       alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
       return;
     }
 
-    setEditingPostId(postId);
-    setEditingAuthorId(postAuthorId);
-    setEditingTitle(postTitle);
-    setEditingContent(postContent);
-  }
-
-  function cancelEdit() {
-    setEditingPostId(null);
-    setEditingAuthorId("");
-    setEditingTitle("");
-    setEditingContent("");
+    router.push(`/community/write?mode=edit&id=${postId}`);
   }
 
   const filteredPosts = useMemo(() => {
@@ -163,27 +149,6 @@ export default function DailyPostBoard() {
     () => Array.from({ length: totalPages }, (_, index) => index + 1),
     [totalPages]
   );
-
-  async function handleUpdate(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!editingPostId || editingTitle.trim().length === 0 || editingContent.trim().length === 0) {
-      return;
-    }
-
-    // 권한 재확인
-    if (!isAdmin(user) && user?.id !== editingAuthorId) {
-      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
-      return;
-    }
-
-    if (!window.confirm("글을 저장하시겠습니까?")) {
-      return;
-    }
-
-    await updatePost(editingPostId, editingTitle.trim(), editingContent.trim());
-    cancelEdit();
-  }
 
   function handleTogglePostSelection(postId: string, checked: boolean) {
     setSelectedPostIds((prev) => {
@@ -276,124 +241,74 @@ export default function DailyPostBoard() {
         </div>
 
         <ul className="mt-5 space-y-3 md:space-y-3">
-          {paginatedPosts.map((post) =>
-            editingPostId === post.id ? (
-              <li key={post.id} className="rounded-lg border border-slate-200 bg-white p-5">
-                <h3 className="text-lg font-semibold text-slate-900">글 수정</h3>
-                <form onSubmit={handleUpdate} className="mt-4 space-y-4">
-                  <div className="space-y-1.5">
-                    <label htmlFor={`edit-title-${post.id}`} className="text-sm font-medium text-slate-700">
-                      제목
-                    </label>
+          {paginatedPosts.map((post) => (
+            <li key={post.id} className="rounded-lg border border-slate-200 bg-white px-3 py-3 md:px-4 md:py-3">
+              <div className="flex items-start justify-between gap-3 md:gap-3">
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-medium md:px-2 md:py-0.5 md:text-xs ${getCategoryBadgeClass(
+                      post.category ?? "자유수다"
+                    )}`}
+                  >
+                    {post.category ?? "자유수다"}
+                  </span>
+                  {isCurrentUserAdmin ? (
                     <input
-                      id={`edit-title-${post.id}`}
-                      type="text"
-                      value={editingTitle}
-                      onChange={(event) => setEditingTitle(event.target.value)}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
+                      type="checkbox"
+                      aria-label="삭제할 글 선택"
+                      checked={selectedPostIds.includes(post.id)}
+                      onChange={(event) => handleTogglePostSelection(post.id, event.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-slate-900"
                     />
+                  ) : null}
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label htmlFor={`edit-content-${post.id}`} className="text-sm font-medium text-slate-700">
-                      내용
-                    </label>
-                    <textarea
-                      id={`edit-content-${post.id}`}
-                      value={editingContent}
-                      onChange={(event) => setEditingContent(event.target.value)}
-                      rows={4}
-                      className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={editingTitle.trim().length === 0 || editingContent.trim().length === 0}
-                      className="rounded-lg border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-                    >
-                      저장
-                    </button>
+                  <p className="text-xs leading-5 text-slate-500 md:text-xs md:leading-5">작성일 {post.date} · 글쓴이: {post.author_name}</p>
+                </div>
+                <div className="flex shrink-0 flex-nowrap gap-1.5">
+                  {(isAdmin(user) || user?.id === post.author_id) && (
                     <button
                       type="button"
-                      onClick={cancelEdit}
-                      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
+                      onClick={() => goToEditPage(post.id, post.author_id)}
+                      className="whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:px-2 md:py-1 md:text-xs"
                     >
-                      취소
+                      수정
                     </button>
-                  </div>
-                </form>
-              </li>
-            ) : (
-              <li key={post.id} className="rounded-lg border border-slate-200 bg-white px-3 py-3 md:px-4 md:py-3">
-                <div className="flex items-start justify-between gap-3 md:gap-3">
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-medium md:px-2 md:py-0.5 md:text-xs ${getCategoryBadgeClass(
-                        post.category ?? "자유수다"
-                      )}`}
+                  )}
+                  {(isAdmin(user) || user?.id === post.author_id) && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(post.id, post.author_id)}
+                      className="whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:px-2 md:py-1 md:text-xs"
                     >
-                      {post.category ?? "자유수다"}
-                    </span>
-                    {isCurrentUserAdmin ? (
-                      <input
-                        type="checkbox"
-                        aria-label="삭제할 글 선택"
-                        checked={selectedPostIds.includes(post.id)}
-                        onChange={(event) => handleTogglePostSelection(post.id, event.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-slate-900"
-                      />
-                    ) : null}
-                    </div>
-                    <p className="text-xs leading-5 text-slate-500 md:text-xs md:leading-5">작성일 {post.date} · 글쓴이: {post.author_name}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-nowrap gap-1.5">
-                    {(isAdmin(user) || user?.id === post.author_id) && (
-                      <button
-                        type="button"
-                        onClick={() => startEdit(post.id, post.author_id, post.title, post.excerpt)}
-                        className="whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:px-2 md:py-1 md:text-xs"
-                      >
-                        수정
-                      </button>
-                    )}
-                    {(isAdmin(user) || user?.id === post.author_id) && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(post.id, post.author_id)}
-                        className="whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:px-2 md:py-1 md:text-xs"
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </div>
+                      삭제
+                    </button>
+                  )}
                 </div>
-                <div className="mt-2 flex items-start gap-2.5">
-                  {post.thumbnail_url ? (
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 md:h-24 md:w-24">
-                      <img
-                        src={post.thumbnail_url}
-                        alt="게시글 썸네일"
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                  ) : null}
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/posts/${post.id}`}
-                      className="block text-base font-semibold leading-6 text-slate-900 hover:underline md:text-base md:leading-6"
-                    >
-                      {post.title}
-                    </Link>
-                    <p className="mt-1 text-sm leading-5 text-slate-600 md:text-sm md:leading-5">{stripHtmlTags(post.excerpt)}</p>
+              </div>
+              <div className="mt-2 flex items-start gap-2.5">
+                {post.thumbnail_url ? (
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 md:h-24 md:w-24">
+                    <img
+                      src={post.thumbnail_url}
+                      alt="게시글 썸네일"
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
                   </div>
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/posts/${post.id}`}
+                    className="block text-base font-semibold leading-6 text-slate-900 hover:underline md:text-base md:leading-6"
+                  >
+                    {post.title}
+                  </Link>
+                  <p className="mt-1 text-sm leading-5 text-slate-600 md:text-sm md:leading-5">{stripHtmlTags(post.excerpt)}</p>
                 </div>
-              </li>
-            )
-          )}
+              </div>
+            </li>
+          ))}
         </ul>
 
         {filteredPosts.length > POSTS_PER_PAGE ? (
