@@ -20,6 +20,7 @@ type CommentRow = {
 };
 
 function mapRowToComment(row: CommentRow): PostComment {
+  // DB 컬럼명을 화면에서 사용하는 댓글 타입으로 변환한다.
   return {
     postId: row.post_id,
     content: row.content,
@@ -51,6 +52,7 @@ export async function insertComment(postId: string, content: string, user: User 
     return;
   }
 
+  // 댓글 작성자명은 기본적으로 이메일 prefix를 사용한다.
   const authorName = user.email?.split("@")[0] || "익명사용자";
   const { error } = await supabase.from("comments").insert({
     post_id: postId,
@@ -73,13 +75,13 @@ export async function deleteMyComment(
   authorId: string,
   currentUser: User | null
 ): Promise<void> {
-  // 관리자 체크
+  // 관리자 계정은 모든 댓글 삭제 가능.
   const isAdmin = currentUser?.email?.split("@")[0] === "admin5467" || 
                   currentUser?.email?.split("@")[0] === "kkangho5467" ||
                   currentUser?.id === "admin5467" ||
                   currentUser?.id === "kkangho5467";
 
-  // 작성자 또는 관리자만 삭제 가능
+  // 작성자 또는 관리자만 삭제 가능.
   if (!isAdmin && currentUser?.id !== authorId) {
     alert("삭제할 권한이 없습니다. 본인의 댓글만 삭제할 수 있습니다.");
     throw new Error("User is not authorized to delete this comment");

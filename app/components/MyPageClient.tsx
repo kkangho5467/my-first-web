@@ -36,6 +36,7 @@ export default function MyPageClient() {
     let isMounted = true;
 
     async function loadUser() {
+      // 마이페이지 진입 시 현재 유저와 닉네임 편집 초기값을 세팅한다.
       const user = await getSafeUser();
 
       if (!isMounted) {
@@ -64,6 +65,7 @@ export default function MyPageClient() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // 세션 변경(로그인/로그아웃/정보 갱신)을 즉시 화면 상태에 반영한다.
       if (!session?.user) {
         router.push("/");
         router.refresh();
@@ -93,6 +95,7 @@ export default function MyPageClient() {
       return;
     }
 
+    // 서비스 전체 닉네임 정책과 동일한 정규식 규칙을 적용한다.
     if (!/^[가-힣A-Za-z0-9]{2,8}$/.test(newNickname.trim())) {
       setErrorMessage("닉네임은 특수문자 없이 한글, 영문, 숫자만 가능하고 2자 이상 8자 이하여야 합니다.");
       return;

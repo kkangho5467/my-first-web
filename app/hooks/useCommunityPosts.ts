@@ -66,6 +66,7 @@ function formatPostDateTime(createdAt: string): string {
 }
 
 function mapRowToMockPost(row: PostRow): MockPost {
+  // DB row를 화면에서 쓰는 공통 Post 타입으로 정규화한다.
   return {
     id: row.id,
     title: row.title,
@@ -276,6 +277,7 @@ export function useCommunityPosts(initialPosts: MockPost[]) {
   const [loading, setLoading] = useState(true);
 
   const refetchPosts = useCallback(async () => {
+    // 생성/수정/삭제 이후 목록 일관성을 위해 항상 서버 기준으로 동기화한다.
     setLoading(true);
     try {
       const nextPosts = await fetchCommunityPosts();
@@ -295,6 +297,7 @@ export function useCommunityPosts(initialPosts: MockPost[]) {
       setLoading(true);
       try {
         const nextPosts = await fetchCommunityPosts();
+        // 언마운트 이후 setState 경고를 방지한다.
         if (isMounted) {
           setPosts(nextPosts);
         }

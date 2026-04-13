@@ -13,6 +13,7 @@ export default function FooterEmailLink() {
   async function handleCopy(email: string) {
     try {
       await navigator.clipboard.writeText(email);
+      // 복사 성공 상태를 짧게 보여준 뒤 원래 버튼 라벨로 복귀한다.
       setCopiedEmail(email);
       window.setTimeout(() => setCopiedEmail(null), 1200);
     } catch {
@@ -27,6 +28,7 @@ export default function FooterEmailLink() {
       }
 
       if (!wrapperRef.current.contains(event.target as Node)) {
+        // 외부 영역 클릭 시 툴팁 고정 상태를 해제한다.
         setIsPinned(false);
         setIsHovered(false);
       }

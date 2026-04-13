@@ -18,6 +18,7 @@ export default function AuthForm() {
   }
 
   function buildPseudoEmail(rawUsername: string): string {
+    // Supabase 이메일 인증 API를 아이디 기반 로그인처럼 쓰기 위한 내부 변환값.
     return `${rawUsername.trim()}@myboard.local.com`;
   }
 
@@ -87,6 +88,7 @@ export default function AuthForm() {
     setIsSubmitting(true);
 
     try {
+      // 이미 계정이 있으면 회원가입 대신 즉시 로그인 처리한다.
       const { error: existingSignInError } = await supabase.auth.signInWithPassword({
         email: pseudoEmail,
         password: trimmedPassword,
@@ -159,6 +161,22 @@ export default function AuthForm() {
     }
   }
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
+    // Enter 제출 포함: 모드에 맞는 인증 동작으로 분기한다.
+    if (isLoginMode) {
+      await handleSignIn();
+      return;
+    }
+
+    await handleSignUp();
+  }
+
   return (
     <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-6">
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -168,7 +186,7 @@ export default function AuthForm() {
         {isLoginMode ? "아이디와 비밀번호로 로그인할 수 있습니다." : "아이디, 닉네임, 비밀번호로 회원가입할 수 있습니다."}
       </p>
 
-      <div className="mt-6 space-y-4">
+      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-1.5">
           <label htmlFor="auth-username" className="text-sm font-medium text-slate-700">아이디</label>
           <input
@@ -216,8 +234,7 @@ export default function AuthForm() {
         <div className="flex gap-2">
           {isLoginMode ? (
             <button
-              type="button"
-              onClick={handleSignIn}
+              type="submit"
               disabled={isSubmitting}
               className="rounded-lg border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
@@ -225,8 +242,7 @@ export default function AuthForm() {
             </button>
           ) : (
             <button
-              type="button"
-              onClick={handleSignUp}
+              type="submit"
               disabled={isSubmitting}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
             >
@@ -260,7 +276,7 @@ export default function AuthForm() {
             </button>
           )}
         </div>
-      </div>
+      </form>
     </section>
   );
 }

@@ -77,6 +77,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // 인증 상태 변경을 즉시 반영해 댓글/수정/삭제 권한 UI를 맞춘다.
       if (isMounted) {
         setCurrentUser(session?.user ?? null);
       }
@@ -101,6 +102,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   }
 
   useEffect(() => {
+    // 서버 컴포넌트에서 initialPost를 내려준 경우 중복 fetch를 생략한다.
     if (initialPost) {
       return;
     }
@@ -134,7 +136,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
           setPost(mockPost);
           setLikeCount((postData.likes as number) || 0);
 
-          // 조회수 증가 시도 (실패해도 무시)
+          // 조회수는 부가 기능이므로 실패해도 페이지 렌더링은 계속 진행한다.
           await incrementPostViews(id);
         } else {
           setPost(null);

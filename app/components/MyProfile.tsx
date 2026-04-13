@@ -45,6 +45,7 @@ export default function MyProfile() {
     let isMounted = true;
 
     async function loadMyProfile() {
+      // 인증 유저/프로필 정보를 한 번에 로드해 편집 폼의 초기값을 만든다.
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (!isMounted) {
@@ -173,6 +174,7 @@ export default function MyProfile() {
       const renderHeight = image.height * baseScale * avatarZoom;
       const maxPanX = Math.max((renderWidth - outputSize) / 2, 0);
       const maxPanY = Math.max((renderHeight - outputSize) / 2, 0);
+      // 슬라이더 값(zoom/offset)을 실제 캔버스 좌표로 변환해 잘라낸다.
       const drawX = (outputSize - renderWidth) / 2 + (avatarOffsetX / 100) * maxPanX;
       const drawY = (outputSize - renderHeight) / 2 + (avatarOffsetY / 100) * maxPanY;
 
@@ -210,6 +212,7 @@ export default function MyProfile() {
       return null;
     }
 
+    // 유저별 경로로 업로드하고 공개 URL을 프로필에 저장한다.
     const extension = fileForUpload.name.split(".").pop() || "jpg";
     const filePath = `${currentUserId}/${Date.now()}.${extension}`;
     const { error: uploadError } = await supabase.storage

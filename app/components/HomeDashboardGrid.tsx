@@ -44,6 +44,7 @@ export default function HomeDashboardGrid() {
 
     async function loadLatestPanels() {
       try {
+        // 홈 패널은 커뮤니티/취미 최신 데이터를 병렬 조회해 초기 렌더 지연을 줄인다.
         const [communityPosts, hobbyResult] = await Promise.all([
           fetchCommunityPosts(),
           supabase
@@ -83,6 +84,7 @@ export default function HomeDashboardGrid() {
       return;
     }
 
+    // 방명록은 현재 로컬 상태로만 관리한다(의도적 데모 동작).
     setGuestbookItems((prev) => [
       {
         id: Date.now(),
@@ -106,7 +108,7 @@ export default function HomeDashboardGrid() {
               <div className="aspect-video w-full">
                 <iframe
                   className="h-full w-full"
-                  src="https://www.youtube.com/embed/MMFBwM5xbqU?autoplay=0"
+                  src="https://www.youtube.com/embed/RGrvm1CJh1c?autoplay=0"
                   title="오늘의 영상"
                   allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

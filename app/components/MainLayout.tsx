@@ -44,6 +44,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     searchParams.get("notice") === "login-required" ? "로그인 이후 이용 가능합니다" : null;
 
   useEffect(() => {
+    // 쿼리 기반 안내 토스트는 일정 시간 후 URL에서 notice 파라미터를 정리한다.
     if (searchParams.get("notice") !== "login-required") {
       return;
     }
@@ -62,6 +63,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }, [pathname, router, searchParams]);
 
   useEffect(() => {
+    // 전역 커스텀 이벤트(app:toast)로 어디서든 토스트를 띄울 수 있게 연결한다.
     const handleToastEvent = (event: Event) => {
       const customEvent = event as CustomEvent<{ message: string }>;
       const message = customEvent.detail?.message;
@@ -98,6 +100,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     href: string,
     onAfterNavigate?: () => void
   ) => {
+    // 마이페이지는 로그인 사용자만 허용하고, 비로그인은 인증 페이지로 안내한다.
     if (href !== "/mypage") {
       onAfterNavigate?.();
       return;

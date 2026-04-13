@@ -38,6 +38,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
 
       const Quill = (await import("quill")).default;
 
+      // 글꼴 크기 옵션을 화이트리스트로 고정해 에디터/렌더 결과를 일치시킨다.
       const Size = Quill.import("attributors/style/size");
       Size.whitelist = [...QUILL_SIZE_OPTIONS];
       Quill.register(Size, true);
@@ -66,6 +67,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
 
       const toolbar = editor.getModule("toolbar");
       if (toolbar) {
+        // 이미지 버튼 클릭 시 숨김 input을 열어 업로드 흐름으로 연결한다.
         toolbar.addHandler("image", () => {
           fileInputRef.current?.click();
         });
@@ -79,6 +81,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       editor.format("size", "14px");
 
       editor.on("text-change", () => {
+        // 내부 HTML 변경을 상위 폼 상태로 즉시 반영한다.
         onChangeRef.current(editor.root.innerHTML);
       });
 

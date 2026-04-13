@@ -17,6 +17,7 @@ export default function CommunityWritePage() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
   const editingPostId = searchParams.get("id");
+  // mode=edit&id=... 쿼리일 때 기존 글 수정 모드로 진입한다.
   const isEditMode = mode === "edit" && Boolean(editingPostId);
   const [category, setCategory] = useState<Category>("자유수다");
   const [title, setTitle] = useState("");
@@ -37,6 +38,7 @@ export default function CommunityWritePage() {
     let isMounted = true;
 
     async function guardWritePageAccess() {
+      // 작성 화면은 로그인 사용자만 접근 가능하다.
       const session = await getSafeSession();
 
       if (!isMounted) {
@@ -86,6 +88,7 @@ export default function CommunityWritePage() {
         const canEdit = isAdminByUserId(session.user.id, session.user.email) || session.user.id === post.author_id;
 
         if (!canEdit) {
+          // 작성자/관리자 외에는 편집 모드 접근을 막는다.
           alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
           router.push(`/posts/${postId}`);
           return;
@@ -114,7 +117,7 @@ export default function CommunityWritePage() {
 
   function extractThumbnailUrl(html: string): string | null {
     try {
-      // DOMParser를 사용해 HTML 파싱
+      // 본문 첫 이미지 URL을 썸네일로 사용한다.
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
       const imgElement = doc.querySelector("img");
@@ -126,7 +129,7 @@ export default function CommunityWritePage() {
       console.warn("Failed to parse HTML for thumbnail:", error);
     }
 
-    // 정규식 폴백
+    // 파싱 실패 시 정규식으로 한 번 더 시도한다.
     const match = html.match(/<img[^>]+src=["']([^"']+)["']/);
     return match ? match[1] : null;
   }

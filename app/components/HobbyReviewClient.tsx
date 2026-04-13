@@ -58,6 +58,7 @@ export default function HobbyReviewClient() {
       return;
     }
 
+    // 목록은 항상 서버 기준 최신 상태로 다시 맞춘다.
     setHobbies((data || []) as HobbyItem[]);
   };
 
@@ -97,6 +98,7 @@ export default function HobbyReviewClient() {
       return;
     }
 
+    // 낙관적 업데이트: 먼저 UI 반영 후 실패 시 롤백한다.
     setLikingIds((prev) => new Set(prev).add(id));
     setHobbies((prev) =>
       prev.map((item) =>
@@ -155,6 +157,7 @@ export default function HobbyReviewClient() {
         comment: formData.comment,
       };
 
+      // editingId 유무로 등록/수정 API를 분기한다.
       const { error } = editingId
         ? await supabase.from('hobbies').update(payload).eq('id', editingId)
         : await supabase.from('hobbies').insert([

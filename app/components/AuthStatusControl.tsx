@@ -34,7 +34,7 @@ export default function AuthStatusControl() {
     let isMounted = true;
 
     async function loadUserAndProfile() {
-      // 1. 먼저 로그인한 유저 정보(신분증)를 가져옵니다.
+      // 세션과 profiles를 함께 조회해 헤더 사용자 표시를 초기화한다.
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!isMounted) return;
@@ -43,7 +43,7 @@ export default function AuthStatusControl() {
         setUsername(getUsernameFromEmail(session.user.email));
         setEmail(session.user.email ?? "");
 
-        // 2. [핵심 추가 부분] 유저 아이디로 profiles 테이블을 조회해서 닉네임을 가져옵니다!
+        // user id 기준으로 닉네임/아바타를 가져와 store와 동기화한다.
         const { data: profileData } = await supabase
           .from("profiles")
           .select("nickname, avatar_url")
@@ -62,7 +62,7 @@ export default function AuthStatusControl() {
 
     void loadUserAndProfile();
 
-    // 로그인 상태가 변할 때도 닉네임을 다시 가져오도록 수정
+    // 인증 상태가 바뀌면 동일한 방식으로 프로필 표시를 즉시 갱신한다.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {

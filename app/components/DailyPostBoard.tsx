@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { showGlobalToast } from "@/lib/toast";
 import { useCommunityPosts } from "@/app/hooks/useCommunityPosts";
 import { POSTS_PER_PAGE, paginatePosts } from "@/lib/paginatePosts";
+import { searchPostsByTitleOrContent } from "@/lib/searchPosts";
 import type { User } from "@supabase/supabase-js";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
@@ -68,6 +69,7 @@ export default function DailyPostBoard() {
   const { posts, deletePost, deletePosts } = useCommunityPosts([]);
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
+  const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
@@ -90,6 +92,7 @@ export default function DailyPostBoard() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // 로그인/로그아웃 즉시 반영해서 버튼 권한 UI를 동기화한다.
       if (isMounted) {
         setUser(session?.user ?? null);
       }
@@ -120,20 +123,25 @@ export default function DailyPostBoard() {
   }
 
   const filteredPosts = useMemo(() => {
+    // 카테고리 + 검색어를 함께 반영한 최종 목록.
     if (!selectedCategory) {
-      return posts;
+      return searchPostsByTitleOrContent(posts, query);
     }
-    return posts.filter((post) => (post.category ?? "자유수다") === selectedCategory);
-  }, [posts, selectedCategory]);
+    return searchPostsByTitleOrContent(
+      posts.filter((post) => (post.category ?? "자유수다") === selectedCategory),
+      query
+    );
+  }, [posts, selectedCategory, query]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
 
   useEffect(() => {
     setCurrentPage(1);
     setSelectedPostIds([]);
-  }, [selectedCategory]);
+  }, [selectedCategory, query]);
 
   useEffect(() => {
+    // 원본 posts가 바뀌면 존재하지 않는 선택 ID를 정리한다.
     setSelectedPostIds((prev) => prev.filter((id) => posts.some((post) => post.id === id)));
   }, [posts]);
 
@@ -212,6 +220,35 @@ export default function DailyPostBoard() {
 
       <section>
         <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">커뮤니티</h2>
+
+        <div className="mt-4">
+          <label htmlFor="community-search" className="sr-only">
+            게시글 검색
+          </label>
+          <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 shadow-sm focus-within:border-slate-500">
+            <span aria-hidden className="text-sm text-slate-400">
+              ●
+            </span>
+            <input
+              id="community-search"
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="제목 또는 내용으로 검색"
+              className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            />
+            {query.trim().length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition hover:bg-slate-100"
+              >
+                X
+              </button>
+            ) : null}
+          </div>
+          <p className="mt-2 text-xs text-slate-500">검색 결과 {filteredPosts.length}건</p>
+        </div>
         
         {/* 카테고리 필터 버튼 */}
         <div className="mt-4 flex flex-wrap gap-2">
