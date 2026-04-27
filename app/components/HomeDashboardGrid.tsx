@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
@@ -60,7 +61,7 @@ export default function HomeDashboardGrid() {
 
         setLatestCommunityPosts(communityPosts.slice(0, 4));
         setLatestHobbyPosts((hobbyResult.data ?? []) as HobbyLatestItem[]);
-      } catch (error) {
+      } catch {
         if (isMounted) {
           setLatestCommunityPosts([]);
           setLatestHobbyPosts([]);
@@ -100,12 +101,12 @@ export default function HomeDashboardGrid() {
 
   return (
     <section className="mx-auto w-full max-w-7xl">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <section className="space-y-6 lg:col-span-6">
-          <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+        <section className="grid gap-6 lg:grid-rows-[390px_310px]">
+          <article className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <h2 className="mb-3 text-lg font-semibold text-slate-900">주인장이 엄선한 영상</h2>
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="aspect-video w-full">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200">
+              <div className="h-full w-full">
                 <iframe
                   className="h-full w-full"
                   src="https://www.youtube.com/embed/RGrvm1CJh1c?autoplay=0"
@@ -117,9 +118,9 @@ export default function HomeDashboardGrid() {
             </div>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <article className="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
             <h2 className="mb-3 text-lg font-semibold text-slate-900">한 줄 방명록</h2>
-            <div className="h-44 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
               <ul className="space-y-2">
                 {guestbookItems.map((item) => (
                   <li key={item.id} className="rounded-md bg-white px-3 py-2 text-sm text-slate-700">
@@ -156,72 +157,80 @@ export default function HomeDashboardGrid() {
           </article>
         </section>
 
-        <section className="rounded-xl border border-sky-200 bg-sky-100 p-3 shadow-sm lg:col-span-3 lg:self-start lg:min-h-[390px] lg:max-h-[390px]">
-          <h2 className="text-base font-semibold text-slate-900">커뮤니티 최신 글</h2>
-          {latestCommunityPosts.length > 0 ? (
-            <ul className="mt-3 space-y-2 overflow-y-auto lg:max-h-[320px]">
-              {latestCommunityPosts.map((post) => (
-                <li key={post.id} className="rounded-md bg-white/90 p-2 shadow-sm">
-                  <div className="flex items-start gap-2">
-                    {post.thumbnail_url ? (
-                      <img
-                        src={post.thumbnail_url}
-                        alt="커뮤니티 썸네일"
-                        className="h-10 w-10 shrink-0 rounded-md border border-sky-200 object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 shrink-0 rounded-md border border-sky-200 bg-sky-50" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
-                        {post.category ?? "자유수다"}
-                      </span>
-                      <Link href={`/posts/${post.id}`} className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
-                        {post.title}
-                      </Link>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">{post.excerpt.replace(/<[^>]*>/g, "")}</p>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
-          )}
-        </section>
+        <section className="grid gap-6 lg:grid-rows-[390px_310px]">
+          <article className="flex h-full flex-col rounded-xl border border-sky-200 bg-sky-100 p-3 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">커뮤니티 최신 글</h2>
+            {latestCommunityPosts.length > 0 ? (
+              <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                {latestCommunityPosts.map((post) => {
+                  const thumbnailSrc = post.thumbnail_url ?? null;
 
-        <section className="rounded-xl border border-lime-200 bg-lime-100 p-3 shadow-sm lg:col-span-3 lg:self-start lg:min-h-[390px] lg:max-h-[390px]">
-          <h2 className="text-base font-semibold text-slate-900">취미 탭 최신 글</h2>
-          {latestHobbyPosts.length > 0 ? (
-            <ul className="mt-3 space-y-2 overflow-y-auto lg:max-h-[320px]">
-              {latestHobbyPosts.map((item) => (
-                <li key={item.id} className="rounded-md border border-lime-200 bg-white p-2 shadow-sm">
-                  <div className="flex items-start gap-2">
-                    {item.thumbnail_url || extractFirstImageUrl(item.comment) ? (
-                      <img
-                        src={item.thumbnail_url || extractFirstImageUrl(item.comment) || ""}
-                        alt="취미 썸네일"
-                        className="h-10 w-10 shrink-0 rounded-md border border-lime-200 object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 shrink-0 rounded-md border border-lime-200 bg-lime-50" />
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <span className="inline-flex rounded-full border border-lime-200 bg-lime-50 px-1.5 py-0.5 text-[10px] font-medium text-lime-700">
-                        {item.category}
-                      </span>
-                      <Link href="/hobby" className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
-                        {item.title}
-                      </Link>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">작성자: {item.author_nickname || "익명"}</p>
+                  return (
+                  <li key={post.id} className="rounded-md bg-white/90 p-2 shadow-sm">
+                    <div className={`flex items-start ${thumbnailSrc ? "gap-2" : ""}`}>
+                      {thumbnailSrc ? (
+                        <Image
+                          src={thumbnailSrc}
+                          alt="커뮤니티 썸네일"
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 shrink-0 rounded-md border border-sky-200 object-cover"
+                        />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+                          {post.category ?? "자유수다"}
+                        </span>
+                        <Link href={`/posts/${post.id}`} className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                          {post.title}
+                        </Link>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">{post.excerpt.replace(/<[^>]*>/g, "")}</p>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
-          )}
+                  </li>
+                )})}
+              </ul>
+            ) : (
+              <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
+            )}
+          </article>
+
+          <article className="flex h-full flex-col rounded-xl border border-lime-200 bg-lime-100 p-3 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">취미 탭 최신 글</h2>
+            {latestHobbyPosts.length > 0 ? (
+              <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+                {latestHobbyPosts.map((item) => {
+                  const thumbnailSrc = item.thumbnail_url || extractFirstImageUrl(item.comment);
+
+                  return (
+                  <li key={item.id} className="rounded-md border border-lime-200 bg-white p-2 shadow-sm">
+                    <div className={`flex items-start ${thumbnailSrc ? "gap-2" : ""}`}>
+                      {thumbnailSrc ? (
+                        <Image
+                          src={thumbnailSrc}
+                          alt="취미 썸네일"
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 shrink-0 rounded-md border border-lime-200 object-cover"
+                        />
+                      ) : null}
+                      <div className="min-w-0 flex-1">
+                        <span className="inline-flex rounded-full border border-lime-200 bg-lime-50 px-1.5 py-0.5 text-[10px] font-medium text-lime-700">
+                          {item.category}
+                        </span>
+                        <Link href="/hobby" className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                          {item.title}
+                        </Link>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">작성자: {item.author_nickname || "익명"}</p>
+                      </div>
+                    </div>
+                  </li>
+                )})}
+              </ul>
+            ) : (
+              <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
+            )}
+          </article>
         </section>
       </div>
     </section>

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type { MockPost } from "@/content/blog-content";
 import type { User } from "@supabase/supabase-js";
 import { getSafeUser } from "@/lib/supabaseAuth";
@@ -14,6 +16,10 @@ import {
 } from "@/app/hooks/useCommunityPosts";
 import { deleteMyComment, fetchCommentsByPostId, insertComment, type PostComment } from "@/app/hooks/usePostComments";
 import PostDetailSkeleton from "./PostDetailSkeleton";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 type PostDetailClientProps = {
   id: string;
@@ -58,8 +64,9 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   const [newComment, setNewComment] = useState("");
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
 
-  const canEditPost = post && (isAdmin(currentUser) || currentUser?.id === post.author_id);
+  const isPostAuthor = Boolean(post && currentUser?.id === post.author_id);
   
   useEffect(() => {
     let isMounted = true;
@@ -89,7 +96,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     };
   }, []);
 
-  async function refetchComments() {
+  const refetchComments = useCallback(async () => {
     setCommentsLoading(true);
     try {
       const nextComments = await fetchCommentsByPostId(id);
@@ -99,7 +106,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     } finally {
       setCommentsLoading(false);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
     // 서버 컴포넌트에서 initialPost를 내려준 경우 중복 fetch를 생략한다.
@@ -154,7 +161,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
   useEffect(() => {
     void refetchComments();
-  }, [id]);
+  }, [refetchComments]);
 
   async function handleCreateComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -197,9 +204,8 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    // 권한 확인
-    if (!isAdmin(currentUser) && currentUser?.id !== post.author_id) {
-      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+    if (currentUser?.id !== post.author_id) {
+      toast.error("작성자만 수정할 수 있습니다.");
       return;
     }
 
@@ -211,26 +217,43 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
+    if (currentUser?.id !== post.author_id) {
+      toast.error("작성자만 삭제할 수 있습니다.");
+      return;
+    }
+
     if (!window.confirm("글을 삭제하시겠습니까?")) {
       return;
     }
 
-    await deletePostInSupabase(post.id, currentUser, post.author_id);
-    router.push("/daily");
+    setIsDeletingPost(true);
+
+    const deletePromise = deletePostInSupabase(post.id, currentUser, post.author_id);
+
+    toast.promise(deletePromise, {
+      loading: "게시글을 삭제하는 중입니다...",
+      success: "게시글이 삭제되었습니다.",
+      error: (error) => {
+        if (error instanceof Error && error.message) {
+          return error.message;
+        }
+        return "게시글 삭제에 실패했습니다.";
+      },
+    });
+
+    try {
+      await deletePromise;
+    } catch {
+      setIsDeletingPost(false);
+      return;
+    }
+
+    router.push("/posts");
   }
 
   if (isLoadingPost) {
     return (
-      <section className="space-y-4">
-        <Link
-          href="/daily"
-          className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-700 transition-colors hover:bg-slate-100"
-        >
-          <span aria-hidden>{"<-"}</span>
-          <span>커뮤니티로 돌아가기</span>
-        </Link>
-        <p className="text-sm text-slate-500">게시글 정보를 불러오는 중입니다...</p>
-      </section>
+      <PostDetailSkeleton />
     );
   }
 
@@ -238,7 +261,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     return (
       <section className="space-y-4">
         <Link
-          href="/daily"
+          href="/posts"
           className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2.5 py-1 text-xs text-slate-700 transition-colors hover:bg-slate-100"
         >
           <span aria-hidden>{"<-"}</span>
@@ -254,27 +277,27 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     <section className="space-y-8">
       {/* 네비게이션 */}
       <Link
-        href="/daily"
+        href="/posts"
         className="inline-flex items-center text-sm text-gray-500 transition hover:text-gray-700"
       >
         ← 목록으로 돌아가기
       </Link>
 
       {/* 게시글 컨테이너 */}
-      <div className="w-full rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6">
+      <Card className="w-full rounded-xl border border-gray-200 bg-white p-0 shadow-sm md:p-0">
         {/* 헤더 영역 */}
-        <header className="border-b border-gray-200 pb-6">
+        <CardHeader className="border-b border-gray-200 pb-6">
           {/* 카테고리 뱃지 */}
           <div className="mb-4">
-            <span className="inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+            <Badge className="border-blue-200 bg-blue-100 text-blue-700">
               {post.category || "자유수다"}
-            </span>
+            </Badge>
           </div>
 
           {/* 제목 */}
-          <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900">
+          <CardTitle className="mb-4 text-3xl font-bold tracking-tight text-gray-900">
             {post.title}
-          </h1>
+          </CardTitle>
 
           {/* 메타 정보 */}
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
@@ -284,7 +307,9 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
             <span>·</span>
             <span>조회수 {post.views || 0}</span>
           </div>
-        </header>
+        </CardHeader>
+
+        <CardContent className="p-5 md:p-6">
 
         {/* 본문 영역 */}
         <div 
@@ -293,65 +318,80 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         />
 
         {/* 액션 버튼 (수정/삭제) */}
-        {canEditPost && (
+        {isPostAuthor && (
           <div className="mb-6 flex justify-end gap-2 border-t border-gray-200 pt-6">
-            <button
+            <Button
               type="button"
               onClick={handleStartPostEdit}
-              className="rounded-lg px-3 py-2 text-xs text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              variant="outline"
+              size="icon-sm"
+              aria-label="게시글 수정"
             >
-              수정
-            </button>
-            <button
+              <Pencil />
+            </Button>
+            <Button
               type="button"
               onClick={handleDeletePost}
-              className="rounded-lg px-3 py-2 text-xs text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+              variant="outline"
+              size="icon-sm"
+              aria-label="게시글 삭제"
+              disabled={isDeletingPost}
             >
-              삭제
-            </button>
+              <Trash2 />
+            </Button>
           </div>
         )}
 
         {/* 좋아요 버튼 */}
         <div className="flex justify-center border-t border-gray-200 py-6">
-          <button
+          <Button
             onClick={() => {
               setIsLiked(!isLiked);
               setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
             }}
             type="button"
-            className={`flex items-center gap-2 rounded-lg border-2 px-6 py-3 font-medium transition ${
+            className={`flex items-center gap-2 border-2 px-6 py-3 font-medium ${
               isLiked
                 ? "border-red-400 bg-red-50 text-red-600 hover:bg-red-100"
                 : "border-gray-300 bg-white text-gray-600 hover:border-red-300 hover:bg-red-50 hover:text-red-500"
             }`}
+            variant="outline"
+            size="lg"
           >
             <span className="text-xl">♥</span>
             <span>{isLiked ? `좋아요 ${likeCount}` : "좋아요"}</span>
-          </button>
+          </Button>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
+      <Card className="rounded-xl border border-slate-200 bg-white p-0 md:p-0">
+        <CardHeader>
         <h2 className="text-xl font-semibold text-slate-900">댓글</h2>
         <p className="mt-1 text-sm text-slate-500">댓글을 작성하거나 삭제할 수 있습니다.</p>
+        </CardHeader>
+
+        <CardContent className="p-5 md:p-6">
 
         <form onSubmit={handleCreateComment} className="mt-4 space-y-3">
-          <textarea
+          <Textarea
             value={newComment}
             onChange={(event) => setNewComment(event.target.value)}
             placeholder="댓글을 입력하세요"
             rows={3}
-            className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
+            className="resize-y bg-white"
           />
-          <button
+          <Button
             type="submit"
             disabled={currentUser ? newComment.trim().length === 0 : false}
-            className="rounded-lg border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {currentUser ? "댓글 등록" : "로그인 후 이용"}
-          </button>
+          </Button>
         </form>
+
+        {commentsLoading ? (
+          <p className="mt-5 text-sm text-slate-500">댓글을 불러오는 중입니다...</p>
+        ) : null}
 
         <ul className="mt-6 space-y-3">
           {comments.map((comment, index) => (
@@ -364,13 +404,14 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
                   작성자: <span className="font-medium">{comment.authorName}</span> · {formatKoreaDateTime(comment.createdAt)}
                 </p>
                 {(isAdmin(currentUser) || currentUser?.id === comment.authorId) && (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => handleDeleteComment(comment)}
-                    className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-100"
+                    variant="outline"
+                    size="xs"
                   >
                     삭제
-                  </button>
+                  </Button>
                 )}
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-700">{comment.content}</p>
@@ -381,7 +422,8 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         {comments.length === 0 ? (
           <p className="mt-5 text-sm text-slate-500">아직 댓글이 없습니다.</p>
         ) : null}
-      </section>
+        </CardContent>
+      </Card>
     </section>
   );
 }

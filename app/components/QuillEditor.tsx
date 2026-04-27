@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type QuillType from "quill";
+import type { QuillOptionsStatic } from "quill";
 import "quill/dist/quill.snow.css";
 
 const QUILL_SIZE_OPTIONS = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "30px"] as const;
@@ -15,7 +15,7 @@ type QuillEditorProps = {
 
 export default function QuillEditor({ value, onChange, placeholder, onImageUpload }: QuillEditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
-  const quillRef = useRef<QuillType | null>(null);
+  const quillRef = useRef<import("quill").default | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const onChangeRef = useRef(onChange);
   const onImageUploadRef = useRef(onImageUpload);
@@ -30,9 +30,10 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
 
   useEffect(() => {
     let isMounted = true;
+    const editorElement = editorRef.current;
 
     async function setupEditor() {
-      if (!isMounted || !editorRef.current || quillRef.current) {
+      if (!isMounted || !editorElement || quillRef.current) {
         return;
       }
 
@@ -43,15 +44,15 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       Size.whitelist = [...QUILL_SIZE_OPTIONS];
       Quill.register(Size, true);
 
-      const editorParent = editorRef.current.parentElement;
+      const editorParent = editorElement.parentElement;
       if (editorParent) {
         editorParent.querySelectorAll(".ql-toolbar").forEach((toolbarElement) => {
           toolbarElement.remove();
         });
       }
-      editorRef.current.innerHTML = "";
+      editorElement.innerHTML = "";
 
-      const editor = new Quill(editorRef.current, {
+      const editorOptions: QuillOptionsStatic = {
         theme: "snow",
         placeholder,
         modules: {
@@ -63,9 +64,11 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
             [{ list: "ordered" }, { list: "bullet" }],
           ],
         },
-      } as any);
+      };
 
-      const toolbar = editor.getModule("toolbar");
+      const editor = new Quill(editorElement, editorOptions);
+
+      const toolbar = editor.getModule("toolbar") as { addHandler: (name: string, handler: () => void) => void } | null;
       if (toolbar) {
         // 이미지 버튼 클릭 시 숨김 input을 열어 업로드 흐름으로 연결한다.
         toolbar.addHandler("image", () => {
@@ -75,7 +78,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
 
       const initialHtml = value.trim();
       if (initialHtml) {
-        (editor.clipboard as any).dangerouslyPasteHTML(initialHtml, "silent");
+        editor.clipboard.dangerouslyPasteHTML(initialHtml, "silent");
       }
 
       editor.format("size", "14px");
@@ -94,15 +97,15 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       isMounted = false;
       quillRef.current = null;
 
-      const editorParent = editorRef.current?.parentElement;
+      const editorParent = editorElement?.parentElement;
       if (editorParent) {
         editorParent.querySelectorAll(".ql-toolbar").forEach((toolbarElement) => {
           toolbarElement.remove();
         });
       }
 
-      if (editorRef.current) {
-        editorRef.current.innerHTML = "";
+      if (editorElement) {
+        editorElement.innerHTML = "";
       }
     };
   }, [placeholder, value]);

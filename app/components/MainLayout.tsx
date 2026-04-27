@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import AuthStatusControl from "./AuthStatusControl";
 import FooterEmailLink from "./FooterEmailLink";
@@ -126,7 +127,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-background text-foreground">
+      <Toaster position="top-center" richColors closeButton />
+
       {queryToastMessage ? (
         <div key={`query-${pathname}-${searchParams.toString()}`} className="pointer-events-none fixed left-1/2 top-5 z-50 -translate-x-1/2">
           <div className="toast-auto-hide rounded-full bg-slate-900/95 px-4 py-2 text-sm font-medium text-white shadow-lg backdrop-blur">
@@ -143,10 +146,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       ) : null}
 
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-border bg-surface">
         <div className="mx-auto flex w-full max-w-6xl items-center px-4 py-4">
           <div className="flex items-center gap-6">
-            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-slate-900">
+            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight text-foreground">
               My Blog
             </Link>
 
@@ -226,7 +229,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       <main className="mx-auto w-full max-w-6xl px-4 py-10">{children}</main>
 
-      <footer className="border-t border-slate-200 bg-white">
+      <footer className="border-t border-border bg-surface">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-6 text-xs text-slate-400">
           <nav aria-label="푸터 링크">
             <ul className="flex items-center gap-4">

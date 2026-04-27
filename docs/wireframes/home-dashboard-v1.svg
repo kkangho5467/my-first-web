@@ -1,0 +1,47 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="900" fill="#0f1217"/>
+  <rect x="32" y="24" width="1376" height="52" rx="10" fill="#151b23" stroke="#2a3340"/>
+  <text x="56" y="56" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="16" font-weight="700">My Blog</text>
+  <text x="220" y="56" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="14">Home</text>
+  <text x="286" y="56" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="14">Posts</text>
+  <text x="346" y="56" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="14">Hobby</text>
+  <text x="410" y="56" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="14">Goals</text>
+  <rect x="1240" y="36" width="144" height="28" rx="8" fill="#c29a73"/>
+  <text x="1286" y="55" fill="#18110b" font-family="Segoe UI, sans-serif" font-size="12" font-weight="700">글 작성</text>
+
+  <rect x="32" y="96" width="1376" height="180" rx="16" fill="#151b23" stroke="#2a3340"/>
+  <text x="60" y="140" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="34" font-weight="700">읽고 쓰는 개인 블로그 대시보드</text>
+  <text x="60" y="174" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="16">최신 글과 추천 글을 빠르게 탐색하고, 곧바로 작성으로 진입할 수 있습니다.</text>
+  <rect x="60" y="206" width="180" height="42" rx="10" fill="#c29a73"/>
+  <text x="120" y="232" fill="#18110b" font-family="Segoe UI, sans-serif" font-size="14" font-weight="700">지금 시작하기</text>
+
+  <rect x="32" y="296" width="1376" height="92" rx="14" fill="#151b23" stroke="#2a3340"/>
+  <rect x="56" y="320" width="312" height="44" rx="10" fill="#1b2230"/>
+  <rect x="392" y="320" width="312" height="44" rx="10" fill="#1b2230"/>
+  <rect x="728" y="320" width="312" height="44" rx="10" fill="#1b2230"/>
+  <rect x="1064" y="320" width="312" height="44" rx="10" fill="#1b2230"/>
+  <text x="70" y="348" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="13">총 게시글 124</text>
+  <text x="406" y="348" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="13">최근 업데이트 3시간 전</text>
+  <text x="742" y="348" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="13">댓글 342</text>
+  <text x="1078" y="348" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="13">태그 28</text>
+
+  <rect x="32" y="408" width="1376" height="420" rx="16" fill="#151b23" stroke="#2a3340"/>
+  <text x="60" y="444" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="20" font-weight="700">추천 콘텐츠</text>
+
+  <rect x="60" y="464" width="422" height="160" rx="12" fill="#1b2230"/>
+  <rect x="498" y="464" width="422" height="160" rx="12" fill="#1b2230"/>
+  <rect x="936" y="464" width="422" height="160" rx="12" fill="#1b2230"/>
+  <rect x="60" y="640" width="422" height="160" rx="12" fill="#1b2230"/>
+  <rect x="498" y="640" width="422" height="160" rx="12" fill="#1b2230"/>
+  <rect x="936" y="640" width="422" height="160" rx="12" fill="#1b2230"/>
+
+  <text x="84" y="500" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="15" font-weight="600">Card A</text>
+  <text x="522" y="500" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="15" font-weight="600">Card B</text>
+  <text x="960" y="500" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="15" font-weight="600">Card C</text>
+  <text x="84" y="676" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="15" font-weight="600">Card D</text>
+  <text x="522" y="676" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="15" font-weight="600">Card E</text>
+  <text x="960" y="676" fill="#f4efe8" font-family="Segoe UI, sans-serif" font-size="15" font-weight="600">Card F</text>
+
+  <rect x="32" y="842" width="1376" height="34" rx="8" fill="#151b23" stroke="#2a3340"/>
+  <text x="58" y="864" fill="#9aa3ad" font-family="Segoe UI, sans-serif" font-size="12">Footer · GitHub · Instagram · Contact</text>
+</svg>

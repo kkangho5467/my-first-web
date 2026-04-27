@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSafeSession, getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
@@ -9,9 +10,13 @@ import { showGlobalToast } from "@/lib/toast";
 import { useCommunityPosts } from "@/app/hooks/useCommunityPosts";
 import { POSTS_PER_PAGE, paginatePosts } from "@/lib/paginatePosts";
 import { searchPostsByTitleOrContent } from "@/lib/searchPosts";
+import type { MockPost } from "@/content/blog-content";
 import type { User } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
+const EMPTY_INITIAL_POSTS: MockPost[] = [];
 
 function isAdmin(user: User | null): boolean {
   if (!user?.email && !user?.id) {
@@ -66,13 +71,17 @@ function getCategoryFilterButtonClass(category: string, isActive: boolean): stri
 }
 
 export default function DailyPostBoard() {
-  const { posts, deletePost, deletePosts } = useCommunityPosts([]);
+  const { posts, loading, errorMessage, refetchPosts, deletePost, deletePosts } = useCommunityPosts(EMPTY_INITIAL_POSTS);
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPostIds, setSelectedPostIds] = useState<string[]>([]);
+  const resetPagingState = () => {
+    setCurrentPage(1);
+    setSelectedPostIds([]);
+  };
 
   const isCurrentUserAdmin = isAdmin(user);
 
@@ -108,8 +117,17 @@ export default function DailyPostBoard() {
     if (!window.confirm("글을 삭제하시겠습니까?")) {
       return;
     }
-    await deletePost(postId, user, postAuthorId);
-    showGlobalToast("글이 삭제되었습니다.");
+
+    try {
+      await deletePost(postId, user, postAuthorId);
+      showGlobalToast("글이 삭제되었습니다.");
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        showGlobalToast(error.message);
+        return;
+      }
+      showGlobalToast("글 삭제에 실패했습니다.");
+    }
   }
 
   function goToEditPage(postId: string, postAuthorId: string) {
@@ -119,7 +137,7 @@ export default function DailyPostBoard() {
       return;
     }
 
-    router.push(`/community/write?mode=edit&id=${postId}`);
+    router.push(`/posts/new?mode=edit&id=${postId}`);
   }
 
   const filteredPosts = useMemo(() => {
@@ -135,15 +153,18 @@ export default function DailyPostBoard() {
 
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
 
-  useEffect(() => {
-    setCurrentPage(1);
-    setSelectedPostIds([]);
-  }, [selectedCategory, query]);
+  const activePage = Math.min(currentPage, totalPages);
+  const validSelectedPostIds = useMemo(
+    () => selectedPostIds.filter((id) => posts.some((post) => post.id === id)),
+    [posts, selectedPostIds]
+  );
 
-  useEffect(() => {
-    // 원본 posts가 바뀌면 존재하지 않는 선택 ID를 정리한다.
-    setSelectedPostIds((prev) => prev.filter((id) => posts.some((post) => post.id === id)));
-  }, [posts]);
+  const paginatedPosts = useMemo(() => paginatePosts(filteredPosts, activePage), [filteredPosts, activePage]);
+
+  const pageNumbers = useMemo(
+    () => Array.from({ length: totalPages }, (_, index) => index + 1),
+    [totalPages]
+  );
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -151,12 +172,9 @@ export default function DailyPostBoard() {
     }
   }, [currentPage, totalPages]);
 
-  const paginatedPosts = useMemo(() => paginatePosts(filteredPosts, currentPage), [filteredPosts, currentPage]);
-
-  const pageNumbers = useMemo(
-    () => Array.from({ length: totalPages }, (_, index) => index + 1),
-    [totalPages]
-  );
+  useEffect(() => {
+    setSelectedPostIds((prev) => prev.filter((id) => posts.some((post) => post.id === id)));
+  }, [posts]);
 
   function handleTogglePostSelection(postId: string, checked: boolean) {
     setSelectedPostIds((prev) => {
@@ -170,18 +188,36 @@ export default function DailyPostBoard() {
     });
   }
 
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    resetPagingState();
+  }
+
+  function handleCategoryChange(category: string | null) {
+    setSelectedCategory(category);
+    resetPagingState();
+  }
+
   async function handleDeleteSelectedPosts() {
-    if (!isCurrentUserAdmin || selectedPostIds.length === 0) {
+    if (!isCurrentUserAdmin || validSelectedPostIds.length === 0) {
       return;
     }
 
-    if (!window.confirm(`선택한 ${selectedPostIds.length}개의 글을 삭제하시겠습니까?`)) {
+    if (!window.confirm(`선택한 ${validSelectedPostIds.length}개의 글을 삭제하시겠습니까?`)) {
       return;
     }
 
-    await deletePosts(selectedPostIds, user);
-    setSelectedPostIds([]);
-    showGlobalToast("선택한 글이 삭제되었습니다.");
+    try {
+      await deletePosts(validSelectedPostIds, user);
+      setSelectedPostIds([]);
+      showGlobalToast("선택한 글이 삭제되었습니다.");
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        showGlobalToast(error.message);
+        return;
+      }
+      showGlobalToast("선택 삭제에 실패했습니다.");
+    }
   }
 
   async function handleClickWriteButton() {
@@ -191,31 +227,33 @@ export default function DailyPostBoard() {
       return;
     }
 
-    router.push("/community/write");
+    router.push("/posts/new");
   }
 
   return (
     <section className="space-y-6 md:space-y-8">
       <div className="flex items-center justify-between gap-3">
         {isCurrentUserAdmin ? (
-          <button
+          <Button
             type="button"
             onClick={handleDeleteSelectedPosts}
-            disabled={selectedPostIds.length === 0}
-            className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+            disabled={validSelectedPostIds.length === 0}
+            variant="destructive"
+            size="sm"
+            className="md:text-sm"
           >
-            선택 삭제 ({selectedPostIds.length})
-          </button>
+            선택 삭제 ({validSelectedPostIds.length})
+          </Button>
         ) : (
           <div />
         )}
-        <button
+        <Button
           type="button"
           onClick={handleClickWriteButton}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
           새 글 작성하기
-        </button>
+        </Button>
       </div>
 
       <section>
@@ -229,22 +267,23 @@ export default function DailyPostBoard() {
             <span aria-hidden className="text-sm text-slate-400">
               ●
             </span>
-            <input
+            <Input
               id="community-search"
               type="text"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => handleQueryChange(event.target.value)}
               placeholder="제목 또는 내용으로 검색"
-              className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              className="w-full border-0 bg-transparent px-0 shadow-none focus-visible:border-0 focus-visible:ring-0"
             />
             {query.trim().length > 0 ? (
-              <button
+              <Button
                 type="button"
-                onClick={() => setQuery("")}
-                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 transition hover:bg-slate-100"
+                onClick={() => handleQueryChange("")}
+                variant="outline"
+                size="xs"
               >
                 X
-              </button>
+              </Button>
             ) : null}
           </div>
           <p className="mt-2 text-xs text-slate-500">검색 결과 {filteredPosts.length}건</p>
@@ -254,7 +293,7 @@ export default function DailyPostBoard() {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setSelectedCategory(null)}
+            onClick={() => handleCategoryChange(null)}
             className={`rounded-lg px-3.5 py-2 text-xs font-medium transition md:px-4 md:py-2 md:text-sm ${
               selectedCategory === null
                 ? "bg-slate-900 text-white"
@@ -267,7 +306,7 @@ export default function DailyPostBoard() {
             <button
               key={category}
               type="button"
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => handleCategoryChange(category)}
               className={`rounded-lg px-3.5 py-2 text-xs font-medium transition md:px-4 md:py-2 md:text-sm ${
                 getCategoryFilterButtonClass(category, selectedCategory === category)
               }`}
@@ -277,113 +316,149 @@ export default function DailyPostBoard() {
           ))}
         </div>
 
-        <ul className="mt-5 space-y-3 md:space-y-3">
-          {paginatedPosts.map((post) => (
-            <li key={post.id} className="rounded-lg border border-slate-200 bg-white px-3 py-3 md:px-4 md:py-3">
-              <div className="flex items-start justify-between gap-3 md:gap-3">
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-medium md:px-2 md:py-0.5 md:text-xs ${getCategoryBadgeClass(
-                      post.category ?? "자유수다"
-                    )}`}
-                  >
-                    {post.category ?? "자유수다"}
-                  </span>
-                  {isCurrentUserAdmin ? (
-                    <input
-                      type="checkbox"
-                      aria-label="삭제할 글 선택"
-                      checked={selectedPostIds.includes(post.id)}
-                      onChange={(event) => handleTogglePostSelection(post.id, event.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300 text-slate-900"
-                    />
-                  ) : null}
-                  </div>
-                  <p className="text-xs leading-5 text-slate-500 md:text-xs md:leading-5">작성일 {post.date} · 글쓴이: {post.author_name}</p>
-                </div>
-                <div className="flex shrink-0 flex-nowrap gap-1.5">
-                  {(isAdmin(user) || user?.id === post.author_id) && (
-                    <button
-                      type="button"
-                      onClick={() => goToEditPage(post.id, post.author_id)}
-                      className="whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:px-2 md:py-1 md:text-xs"
-                    >
-                      수정
-                    </button>
-                  )}
-                  {(isAdmin(user) || user?.id === post.author_id) && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(post.id, post.author_id)}
-                      className="whitespace-nowrap rounded border border-slate-300 px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 md:px-2 md:py-1 md:text-xs"
-                    >
-                      삭제
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="mt-2 flex items-start gap-2.5">
-                {post.thumbnail_url ? (
-                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 md:h-24 md:w-24">
-                    <img
-                      src={post.thumbnail_url}
-                      alt="게시글 썸네일"
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : null}
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/posts/${post.id}`}
-                    className="block text-base font-semibold leading-6 text-slate-900 hover:underline md:text-base md:leading-6"
-                  >
-                    {post.title}
-                  </Link>
-                  <p className="mt-1 text-sm leading-5 text-slate-600 md:text-sm md:leading-5">{stripHtmlTags(post.excerpt)}</p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {loading ? (
+          <div className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+            게시글 목록을 불러오는 중입니다...
+          </div>
+        ) : null}
 
-        {filteredPosts.length > POSTS_PER_PAGE ? (
+        {!loading && errorMessage ? (
+          <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-4">
+            <p className="text-sm text-red-700">{errorMessage}</p>
+            <Button
+              type="button"
+              onClick={() => void refetchPosts()}
+              variant="outline"
+              size="sm"
+              className="mt-3"
+            >
+              다시 시도
+            </Button>
+          </div>
+        ) : null}
+
+        {!loading && !errorMessage && filteredPosts.length === 0 ? (
+          <div className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+            조건에 맞는 게시글이 없습니다.
+          </div>
+        ) : null}
+
+        {!loading && !errorMessage && filteredPosts.length > 0 ? (
+          <ul className="mt-5 space-y-3 md:space-y-3">
+            {paginatedPosts.map((post) => (
+              <li key={post.id} className="rounded-lg border border-slate-200 bg-white px-3 py-3 md:px-4 md:py-3">
+                <div className="flex items-start justify-between gap-3 md:gap-3">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-medium md:px-2 md:py-0.5 md:text-xs ${getCategoryBadgeClass(
+                        post.category ?? "자유수다"
+                      )}`}
+                    >
+                      {post.category ?? "자유수다"}
+                    </span>
+                    {isCurrentUserAdmin ? (
+                      <input
+                        type="checkbox"
+                        aria-label="삭제할 글 선택"
+                        checked={validSelectedPostIds.includes(post.id)}
+                        onChange={(event) => handleTogglePostSelection(post.id, event.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-slate-900"
+                      />
+                    ) : null}
+                    </div>
+                    <p className="text-xs leading-5 text-slate-500 md:text-xs md:leading-5">작성일 {post.date} · 글쓴이: {post.author_name}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-nowrap gap-1.5">
+                    {(isAdmin(user) || user?.id === post.author_id) && (
+                      <Button
+                        type="button"
+                        onClick={() => goToEditPage(post.id, post.author_id)}
+                        variant="outline"
+                        size="xs"
+                        className="whitespace-nowrap"
+                      >
+                        수정
+                      </Button>
+                    )}
+                    {(isAdmin(user) || user?.id === post.author_id) && (
+                      <Button
+                        type="button"
+                        onClick={() => handleDelete(post.id, post.author_id)}
+                        variant="outline"
+                        size="xs"
+                        className="whitespace-nowrap"
+                      >
+                        삭제
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex items-start gap-2.5">
+                  {post.thumbnail_url ? (
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 md:h-24 md:w-24">
+                      <Image
+                        src={post.thumbnail_url}
+                        alt="게시글 썸네일"
+                        width={96}
+                        height={96}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/posts/${post.id}`}
+                      className="block text-base font-semibold leading-6 text-slate-900 hover:underline md:text-base md:leading-6"
+                    >
+                      {post.title}
+                    </Link>
+                    <p className="mt-1 text-sm leading-5 text-slate-600 md:text-sm md:leading-5">{stripHtmlTags(post.excerpt)}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {!loading && !errorMessage && filteredPosts.length > POSTS_PER_PAGE ? (
           <nav className="mt-6 flex items-center justify-center gap-2" aria-label="커뮤니티 페이지네이션">
-            <button
+            <Button
               type="button"
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={activePage === 1}
+              variant="outline"
             >
               이전
-            </button>
+            </Button>
             {pageNumbers.map((pageNumber) => (
-              <button
+              <Button
                 key={pageNumber}
                 type="button"
                 onClick={() => setCurrentPage(pageNumber)}
-                className={`h-9 min-w-9 rounded-md border px-3 text-sm font-medium transition ${
-                  currentPage === pageNumber
-                    ? "border-slate-900 bg-slate-900 text-white"
-                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                className={`min-w-9 ${
+                  activePage === pageNumber
+                    ? "bg-foreground text-background"
+                    : ""
                 }`}
-                aria-current={currentPage === pageNumber ? "page" : undefined}
+                variant={activePage === pageNumber ? "default" : "outline"}
+                aria-current={activePage === pageNumber ? "page" : undefined}
               >
                 {pageNumber}
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
               type="button"
               onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={activePage === totalPages}
+              variant="outline"
             >
               다음
-            </button>
+            </Button>
           </nav>
         ) : null}
       </section>
     </section>
   );
 }
+

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Heart } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSafeSession } from '@/lib/supabaseAuth';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -30,6 +32,21 @@ const renderStars = (rating: number) => {
   return '⭐'.repeat(rating);
 };
 
+function parseSupabaseError(error: unknown): { code?: string; message: string } {
+  if (error instanceof Error) {
+    return { message: error.message };
+  }
+
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const code = typeof record.code === 'string' ? record.code : undefined;
+    const message = typeof record.message === 'string' ? record.message : '알 수 없는 Supabase 오류';
+    return { code, message };
+  }
+
+  return { message: '알 수 없는 Supabase 오류' };
+}
+
 export default function HobbyReviewClient() {
   const [hobbies, setHobbies] = useState<HobbyItem[]>([]);
   const [formOpen, setFormOpen] = useState(false);
@@ -39,6 +56,8 @@ export default function HobbyReviewClient() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [likingIds, setLikingIds] = useState<Set<string>>(new Set());
+  const [likedHobbyIds, setLikedHobbyIds] = useState<Set<string>>(new Set());
+  const hasWarnedLikeLoadRef = useRef(false);
 
   const [formData, setFormData] = useState({
     author_nickname: '',
@@ -62,6 +81,34 @@ export default function HobbyReviewClient() {
     setHobbies((data || []) as HobbyItem[]);
   };
 
+  const fetchLikedHobbyIds = async (userId: string | null) => {
+    if (!userId) {
+      setLikedHobbyIds(new Set());
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('hobby_likes')
+      .select('hobby_id')
+      .eq('user_id', userId);
+
+    if (error) {
+      if (!hasWarnedLikeLoadRef.current) {
+        const normalizedError = parseSupabaseError(error);
+        const configHint = normalizedError.code === '42P01'
+          ? ' (hobby_likes 마이그레이션이 적용되지 않았을 수 있습니다.)'
+          : '';
+
+        console.warn(`좋아요 상태를 불러오지 못했습니다: ${normalizedError.message}${configHint}`);
+        hasWarnedLikeLoadRef.current = true;
+      }
+      setLikedHobbyIds(new Set());
+      return;
+    }
+
+    setLikedHobbyIds(new Set((data || []).map((item) => item.hobby_id as string)));
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -72,6 +119,7 @@ export default function HobbyReviewClient() {
         const emailPrefix = sessionUser?.email?.split('@')[0] || '';
         setIsAdmin(emailPrefix === 'admin5467' || emailPrefix === 'kkangho5467');
         await fetchHobbies();
+        await fetchLikedHobbyIds(sessionUser?.id ?? null);
       } catch (err) {
         console.error('데이터 로드 오류:', err);
       } finally {
@@ -82,9 +130,11 @@ export default function HobbyReviewClient() {
     loadData();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUserId(session?.user?.id ?? null);
+      const nextUserId = session?.user?.id ?? null;
+      setCurrentUserId(nextUserId);
       const emailPrefix = session?.user?.email?.split('@')[0] || '';
       setIsAdmin(emailPrefix === 'admin5467' || emailPrefix === 'kkangho5467');
+      void fetchLikedHobbyIds(nextUserId);
     });
 
     return () => {
@@ -98,30 +148,86 @@ export default function HobbyReviewClient() {
       return;
     }
 
+    if (likingIds.has(id)) {
+      return;
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      toast.error('로그인이 필요한 기능입니다.');
+      return;
+    }
+
+    const wasLiked = likedHobbyIds.has(id);
+    const optimisticLikesCount = wasLiked
+      ? Math.max((target.likes_count || 0) - 1, 0)
+      : (target.likes_count || 0) + 1;
+
     // 낙관적 업데이트: 먼저 UI 반영 후 실패 시 롤백한다.
     setLikingIds((prev) => new Set(prev).add(id));
     setHobbies((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, likes_count: (item.likes_count || 0) + 1 } : item
+        item.id === id ? { ...item, likes_count: optimisticLikesCount } : item
       )
     );
+    setLikedHobbyIds((prev) => {
+      const next = new Set(prev);
+      if (wasLiked) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
 
     try {
-      const { error } = await supabase
-        .from('hobbies')
-        .update({ likes_count: (target.likes_count || 0) + 1 })
-        .eq('id', id);
+      const { data, error } = await supabase.rpc('toggle_hobby_like', {
+        p_hobby_id: id,
+      });
 
       if (error) {
         throw error;
       }
+
+      const payload = Array.isArray(data) ? data[0] : data;
+      if (payload && typeof payload.likes_count === 'number' && typeof payload.liked === 'boolean') {
+        setHobbies((prev) =>
+          prev.map((item) =>
+            item.id === id ? { ...item, likes_count: payload.likes_count } : item
+          )
+        );
+        setLikedHobbyIds((prev) => {
+          const next = new Set(prev);
+          if (payload.liked) {
+            next.add(id);
+          } else {
+            next.delete(id);
+          }
+          return next;
+        });
+      }
     } catch (err) {
-      console.error('좋아요 업데이트 오류:', err);
+      const normalizedError = parseSupabaseError(err);
+      const migrationHint = normalizedError.message.toLowerCase().includes('toggle_hobby_like')
+        ? ' (toggle_hobby_like RPC가 배포되지 않았을 수 있습니다.)'
+        : '';
+
+      console.warn(`좋아요 업데이트 오류: ${normalizedError.message}${migrationHint}`);
+      toast.error('좋아요 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       setHobbies((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, likes_count: Math.max((item.likes_count || 1) - 1, 0) } : item
+          item.id === id ? { ...item, likes_count: target.likes_count || 0 } : item
         )
       );
+      setLikedHobbyIds((prev) => {
+        const next = new Set(prev);
+        if (wasLiked) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+        return next;
+      });
     } finally {
       setLikingIds((prev) => {
         const next = new Set(prev);
@@ -406,9 +512,18 @@ export default function HobbyReviewClient() {
               <button
                 onClick={() => handleLike(review.id)}
                 disabled={likingIds.has(review.id)}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  likedHobbyIds.has(review.id)
+                    ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                }`}
+                aria-label="좋아요 토글"
               >
-                ❤️ 좋아요 {review.likes_count || 0}
+                <Heart
+                  className="h-4 w-4"
+                  fill={likedHobbyIds.has(review.id) ? 'currentColor' : 'none'}
+                />
+                좋아요 {review.likes_count || 0}
               </button>
             </div>
           </article>

@@ -13,14 +13,19 @@ function getSystemTheme(): ThemeMode {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemeMode>("light");
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    const savedTheme = window.localStorage.getItem("theme-mode") as ThemeMode | null;
+    return savedTheme ?? getSystemTheme();
+  });
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("theme-mode") as ThemeMode | null;
-    const initialTheme = savedTheme ?? getSystemTheme();
-    setTheme(initialTheme);
-    document.documentElement.setAttribute("data-theme", initialTheme);
-  }, []);
+    document.documentElement.setAttribute("data-theme", theme);
+    window.localStorage.setItem("theme-mode", theme);
+  }, [theme]);
 
   function toggleTheme() {
     const nextTheme: ThemeMode = theme === "light" ? "dark" : "light";

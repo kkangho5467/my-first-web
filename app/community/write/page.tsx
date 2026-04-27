@@ -7,6 +7,9 @@ import QuillEditor from "@/app/components/QuillEditor";
 import { createPostInSupabase, fetchPostById, updatePostInSupabase } from "@/app/hooks/useCommunityPosts";
 import { getSafeSession } from "@/lib/supabaseAuth";
 import { uploadImageToSupabase } from "@/lib/uploadImageToSupabase";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
 
@@ -81,7 +84,7 @@ export default function CommunityWritePage() {
 
         if (!post) {
           alert("게시글을 찾을 수 없습니다.");
-          router.push("/daily");
+          router.push("/posts");
           return;
         }
 
@@ -167,7 +170,7 @@ export default function CommunityWritePage() {
       } else {
         await createPostInSupabase(trimmedTitle, trimmedContent, category, thumbnailUrl);
         alert("글이 등록되었습니다.");
-        router.push("/daily");
+        router.push("/posts");
       }
     } catch (error) {
       console.error("Failed to save post:", error instanceof Error ? error.message : error);
@@ -183,15 +186,17 @@ export default function CommunityWritePage() {
     : "말머리를 선택하고 제목을 입력해 게시글 초안을 준비하세요.";
   const submitLabel = isEditMode ? "수정하기" : "등록하기";
   const submitPendingLabel = isEditMode ? "수정 중..." : "등록 중...";
-  const cancelTarget = isEditMode && editingPostId ? `/posts/${editingPostId}` : "/daily";
+  const cancelTarget = isEditMode && editingPostId ? `/posts/${editingPostId}` : "/posts";
 
   return (
     <MainLayout>
-      <section className="w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{pageTitle}</h1>
-          <p className="mt-2 text-sm text-slate-500">{pageDescription}</p>
-        </header>
+      <Card className="w-full rounded-2xl">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">{pageTitle}</CardTitle>
+          <CardDescription className="text-sm text-slate-500">{pageDescription}</CardDescription>
+        </CardHeader>
+
+        <CardContent>
 
         {isEditMode && isLoadingDraft ? (
           <p className="mb-6 text-sm text-slate-500">기존 게시글을 불러오는 중입니다...</p>
@@ -220,13 +225,13 @@ export default function CommunityWritePage() {
             <label htmlFor="community-title" className="text-sm font-medium text-slate-700">
               제목
             </label>
-            <input
+            <Input
               id="community-title"
               type="text"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="제목을 입력하세요"
-              className="h-14 w-full rounded-xl border border-slate-300 bg-white px-4 text-lg text-slate-900 outline-none ring-blue-300 transition focus:ring"
+              className="h-14 w-full px-4 text-lg"
             />
           </div>
 
@@ -244,24 +249,25 @@ export default function CommunityWritePage() {
         </div>
 
         <div className="mt-8 flex justify-end gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => router.push(cancelTarget)}
             disabled={isSubmitting}
-            className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            variant="outline"
           >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !title.trim() || !content.trim()}
-            className="rounded-xl border border-slate-900 bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
             {isSubmitting ? submitPendingLabel : submitLabel}
-          </button>
+          </Button>
         </div>
-      </section>
+
+        </CardContent>
+      </Card>
 
     </MainLayout>
   );

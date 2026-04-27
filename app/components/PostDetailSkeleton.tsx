@@ -1,21 +1,20 @@
-import type { ReactNode } from "react";
-
-type PostDetailSkeletonProps = {
-  title: string;
-  date: string;
-  author_name: string;
-  children: ReactNode;
-};
-
-export default function PostDetailSkeleton({ title, date, author_name, children }: PostDetailSkeletonProps) {
+export default function PostDetailSkeleton() {
   return (
-    <section className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900">{title}</h1>
-        <p className="text-sm text-slate-500">작성일 {date} · 글쓴이: {author_name}</p>
-      </header>
+    <section className="space-y-8 animate-pulse">
+      <div className="space-y-3">
+        <div className="h-10 w-3/4 rounded-lg bg-slate-200" />
+        <div className="h-4 w-1/2 rounded bg-slate-200" />
+      </div>
 
-      <article className="max-w-3xl leading-8 text-slate-700">{children}</article>
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="h-4 w-24 rounded bg-slate-200" />
+        <div className="space-y-3">
+          <div className="h-4 w-full rounded bg-slate-200" />
+          <div className="h-4 w-11/12 rounded bg-slate-200" />
+          <div className="h-4 w-10/12 rounded bg-slate-200" />
+          <div className="h-4 w-9/12 rounded bg-slate-200" />
+        </div>
+      </div>
     </section>
   );
 }

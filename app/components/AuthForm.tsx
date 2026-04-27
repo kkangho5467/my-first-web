@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -54,6 +57,14 @@ export default function AuthForm() {
     }
 
     return `인증 중 오류가 발생했습니다: ${message}`;
+  }
+
+  function toSafeErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return toFriendlyErrorMessage(error.message);
+    }
+
+    return "인증 중 알 수 없는 오류가 발생했습니다.";
   }
 
   async function handleSignUp() {
@@ -124,6 +135,8 @@ export default function AuthForm() {
       alert("회원가입이 완료되었습니다.");
       router.push("/");
       router.refresh();
+    } catch (error) {
+      setErrorMessage(toSafeErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -156,6 +169,8 @@ export default function AuthForm() {
       alert("로그인에 성공했습니다.");
       router.push("/");
       router.refresh();
+    } catch (error) {
+      setErrorMessage(toSafeErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -178,24 +193,27 @@ export default function AuthForm() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-6">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-        {isLoginMode ? "로그인" : "회원가입"}
-      </h1>
-      <p className="mt-2 text-sm text-slate-500">
-        {isLoginMode ? "아이디와 비밀번호로 로그인할 수 있습니다." : "아이디, 닉네임, 비밀번호로 회원가입할 수 있습니다."}
-      </p>
+    <Card className="mx-auto w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
+          {isLoginMode ? "로그인" : "회원가입"}
+        </CardTitle>
+        <CardDescription className="text-sm text-slate-500">
+          {isLoginMode ? "아이디와 비밀번호로 로그인할 수 있습니다." : "아이디, 닉네임, 비밀번호로 회원가입할 수 있습니다."}
+        </CardDescription>
+      </CardHeader>
 
-      <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+      <CardContent>
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-1.5">
           <label htmlFor="auth-username" className="text-sm font-medium text-slate-700">아이디</label>
-          <input
+          <Input
             id="auth-username"
             type="text"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             placeholder="아이디를 입력하세요"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
+            className="w-full"
           />
         </div>
 
@@ -204,13 +222,13 @@ export default function AuthForm() {
             <label htmlFor="auth-nickname" className="text-sm font-medium text-slate-700">
               닉네임
             </label>
-            <input
+            <Input
               id="auth-nickname"
               type="text"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               placeholder="닉네임을 입력하세요"
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
+              className="w-full"
             />
           </div>
         ) : null}
@@ -219,13 +237,13 @@ export default function AuthForm() {
           <label htmlFor="auth-password" className="text-sm font-medium text-slate-700">
             비밀번호
           </label>
-          <input
+          <Input
             id="auth-password"
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="비밀번호를 입력하세요"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-300 transition focus:ring"
+            className="w-full"
           />
         </div>
 
@@ -233,50 +251,50 @@ export default function AuthForm() {
 
         <div className="flex gap-2">
           {isLoginMode ? (
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
               로그인
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="submit"
+              variant="outline"
               disabled={isSubmitting}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
             >
               회원가입
-            </button>
+            </Button>
           )}
         </div>
 
         <div className="pt-1 text-center text-xs text-slate-500">
           {isLoginMode ? (
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={() => {
                 setIsLoginMode(false);
                 setErrorMessage("");
               }}
-              className="font-medium text-slate-700 transition-colors hover:text-slate-900"
             >
               아직 계정이 없으신가요? 회원가입
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={() => {
                 setIsLoginMode(true);
                 setErrorMessage("");
               }}
-              className="font-medium text-slate-700 transition-colors hover:text-slate-900"
             >
               이미 계정이 있으신가요? 로그인
-            </button>
+            </Button>
           )}
         </div>
       </form>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

@@ -19,6 +19,20 @@ type PostRow = {
   likes?: number;
 };
 
+function toCommunityListErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    const normalizedMessage = error.message.toLowerCase();
+
+    if (normalizedMessage.includes("failed to fetch") || normalizedMessage.includes("network")) {
+      return "네트워크 연결을 확인한 뒤 다시 시도해 주세요.";
+    }
+
+    return error.message;
+  }
+
+  return "게시글을 불러오지 못했습니다.";
+}
+
 function isAdmin(user: User | null): boolean {
   if (!user?.email && !user?.id) {
     return false;
@@ -83,23 +97,17 @@ function mapRowToMockPost(row: PostRow): MockPost {
 }
 
 export async function fetchCommunityPosts(): Promise<MockPost[]> {
-  try {
-    const { data, error } = await supabase
-      .from("posts")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    if (error) {
-      console.warn("Failed to fetch posts:", error);
-      return [];
-    }
-
-    const rows = (data ?? []) as PostRow[];
-    return rows.map(mapRowToMockPost);
-  } catch (error) {
-    console.warn("Error fetching posts:", error);
-    return [];
+  if (error) {
+    throw new Error("게시글 목록을 불러오지 못했습니다.");
   }
+
+  const rows = (data ?? []) as PostRow[];
+  return rows.map(mapRowToMockPost);
 }
 
 export async function fetchPostById(postId: string): Promise<PostRow | null> {
@@ -142,7 +150,7 @@ export async function incrementPostViews(postId: string): Promise<void> {
         .update({ views: currentViews + 1 })
         .eq("id", postId);
     }
-  } catch (error) {
+  } catch {
     // 조용히 실패 (뷰 기능은 선택적)
   }
 }
@@ -240,16 +248,14 @@ export async function deletePostInSupabase(postId: string, currentUser: User | n
   const isCurrentUserAuthor = currentUser?.id === postAuthorId;
 
   if (!isCurrentUserAdmin && !isCurrentUserAuthor) {
-    alert("삭제 권한이 없습니다. 작성자나 관리자만 삭제할 수 있습니다.");
-    return;
+    throw new Error("삭제 권한이 없습니다.");
   }
 
   const { error } = await supabase.from("posts").delete().eq("id", postId);
 
   if (error) {
     console.error("Failed to delete post:", error);
-    alert("게시글 삭제 중 오류가 발생했습니다.");
-    throw error;
+    throw new Error("게시글 삭제 중 오류가 발생했습니다.");
   }
 }
 
@@ -275,16 +281,19 @@ export async function deletePostsInSupabase(postIds: string[], currentUser: User
 export function useCommunityPosts(initialPosts: MockPost[]) {
   const [posts, setPosts] = useState<MockPost[]>(initialPosts);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const refetchPosts = useCallback(async () => {
     // 생성/수정/삭제 이후 목록 일관성을 위해 항상 서버 기준으로 동기화한다.
     setLoading(true);
+    setErrorMessage(null);
     try {
       const nextPosts = await fetchCommunityPosts();
       setPosts(nextPosts);
     } catch (error) {
       console.warn("Failed to refetch posts:", error);
       setPosts(initialPosts);
+      setErrorMessage(toCommunityListErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -295,6 +304,7 @@ export function useCommunityPosts(initialPosts: MockPost[]) {
 
     async function loadPosts() {
       setLoading(true);
+      setErrorMessage(null);
       try {
         const nextPosts = await fetchCommunityPosts();
         // 언마운트 이후 setState 경고를 방지한다.
@@ -304,6 +314,7 @@ export function useCommunityPosts(initialPosts: MockPost[]) {
       } catch (error) {
         if (isMounted) {
           setPosts(initialPosts);
+          setErrorMessage(toCommunityListErrorMessage(error));
         }
         console.warn("Failed to load posts:", error);
       } finally {
@@ -342,5 +353,5 @@ export function useCommunityPosts(initialPosts: MockPost[]) {
     [refetchPosts]
   );
 
-  return { posts, loading, refetchPosts, ...actions };
+  return { posts, loading, errorMessage, refetchPosts, ...actions };
 }
