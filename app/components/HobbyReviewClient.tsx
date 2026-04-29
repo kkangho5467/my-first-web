@@ -20,12 +20,12 @@ interface HobbyItem {
 const categories = ['축구', '영화', '음악', '독서', '게임', '기타'] as const;
 
 const categoryBadgeColor: Record<string, string> = {
-  축구: 'bg-blue-100 text-blue-800 border-blue-300',
-  영화: 'bg-rose-100 text-rose-800 border-rose-300',
-  음악: 'bg-purple-100 text-purple-800 border-purple-300',
-  독서: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  게임: 'bg-amber-100 text-amber-800 border-amber-300',
-  기타: 'bg-slate-100 text-slate-800 border-slate-300',
+  축구: 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-[#111827] dark:text-gray-200 dark:border-[#334155]',
+  영화: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-[#111827] dark:text-gray-200 dark:border-[#334155]',
+  음악: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-[#111827] dark:text-gray-200 dark:border-[#334155]',
+  독서: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-[#111827] dark:text-gray-200 dark:border-[#334155]',
+  게임: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-[#111827] dark:text-gray-200 dark:border-[#334155]',
+  기타: 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-[#111827] dark:text-gray-200 dark:border-[#334155]',
 };
 
 const renderStars = (rating: number) => {
@@ -346,7 +346,7 @@ export default function HobbyReviewClient() {
   return (
     <section className="space-y-6">
       {/* 헤더 */}
-      <header className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-8">
+      <header className="rounded-lg border border-slate-200 bg-white p-6 md:p-8">
         <p className="text-xs tracking-[0.16em] text-slate-500">HOBBY</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">취미</h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 md:text-base">
@@ -372,7 +372,7 @@ export default function HobbyReviewClient() {
               });
             }
           }}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50"
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-slate-50 dark:border-[#334155] dark:bg-[#111827] dark:text-gray-200 dark:hover:bg-[#0f172a]"
         >
           {formOpen ? '닫기' : '내 관심사 공유하기'}
         </button>
@@ -380,29 +380,29 @@ export default function HobbyReviewClient() {
 
       {/* 글쓰기 폼 */}
       {formOpen && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
-          <h3 className="mb-4 text-lg font-bold text-slate-900">{editingId ? '관심사 수정하기' : '관심사 작성하기'}</h3>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 dark:border-[#334155] dark:bg-[#111827]">
+          <h3 className="mb-4 text-lg font-bold text-slate-900 dark:text-gray-100">{editingId ? '관심사 수정하기' : '관심사 작성하기'}</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-900">닉네임</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-gray-200">닉네임</label>
               <input
                 type="text"
                 value={formData.author_nickname}
                 onChange={(e) => setFormData({ ...formData, author_nickname: e.target.value })}
                 placeholder="표시할 닉네임"
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-100"
               />
             </div>
 
             {/* 카테고리 선택 */}
             <div>
-              <label className="block text-sm font-medium text-slate-900">카테고리</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-gray-200">카테고리</label>
               <select
                 value={formData.category}
                 onChange={(e) =>
                   setFormData({ ...formData, category: e.target.value as typeof formData.category })
                 }
-                className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-100"
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
@@ -414,19 +414,19 @@ export default function HobbyReviewClient() {
 
             {/* 제목 */}
             <div>
-              <label className="block text-sm font-medium text-slate-900">제목</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-gray-200">제목</label>
               <input
                 type="text"
                 placeholder="리뷰 제목을 입력해주세요"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-100"
               />
             </div>
 
             {/* 평점 */}
             <div>
-              <label className="block text-sm font-medium text-slate-900">평점 (1~5)</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-gray-200">평점 (1~5)</label>
               <input
                 type="range"
                 min="1"
@@ -440,12 +440,12 @@ export default function HobbyReviewClient() {
 
             {/* 소감 */}
             <div>
-              <label className="block text-sm font-medium text-slate-900">소감</label>
+              <label className="block text-sm font-medium text-slate-900 dark:text-gray-200">소감</label>
               <textarea
                 placeholder="간단한 소감을 입력해주세요"
                 value={formData.comment}
                 onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-100"
                 rows={3}
               />
             </div>
@@ -454,7 +454,7 @@ export default function HobbyReviewClient() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border dark:border-[#334155] dark:bg-[#0f172a] dark:hover:bg-[#111827]"
             >
               {submitting ? (editingId ? '수정 중...' : '등록 중...') : editingId ? '수정 저장' : '등록'}
             </button>
@@ -467,11 +467,11 @@ export default function HobbyReviewClient() {
         {hobbies.map((review) => (
           <article
             key={review.id}
-            className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md"
+            className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-[#334155] dark:bg-[#111827]"
           >
             {/* 상단: 닉네임 + 카테고리 뱃지 */}
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold text-slate-700">{review.author_nickname}</span>
+              <span className="text-sm font-semibold text-slate-700 dark:text-gray-200">{review.author_nickname}</span>
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${
@@ -486,14 +486,14 @@ export default function HobbyReviewClient() {
                     <button
                       type="button"
                       onClick={() => handleEditReview(review)}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-[#334155] dark:text-gray-300 dark:hover:bg-[#0f172a]"
                     >
                       수정
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteReview(review)}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                      className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 dark:border-[#334155] dark:text-gray-300 dark:hover:bg-[#0f172a]"
                     >
                       삭제
                     </button>
@@ -503,19 +503,19 @@ export default function HobbyReviewClient() {
             </div>
 
             {/* 중앙: 제목, 별점, 본문 */}
-            <h3 className="text-lg font-bold text-slate-900 line-clamp-2">{review.title}</h3>
+            <h3 className="line-clamp-2 text-lg font-bold text-slate-900 dark:text-gray-100">{review.title}</h3>
             <div className="my-3 text-xl">{renderStars(review.rating)}</div>
-            <p className="flex-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">{review.comment}</p>
+            <p className="flex-1 whitespace-pre-wrap text-sm leading-6 text-slate-600 dark:text-gray-300">{review.comment}</p>
 
             {/* 하단: 좋아요 */}
-            <div className="mt-4 border-t border-slate-100 pt-4">
+            <div className="mt-4 border-t border-slate-100 pt-4 dark:border-[#334155]">
               <button
                 onClick={() => handleLike(review.id)}
                 disabled={likingIds.has(review.id)}
                 className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   likedHobbyIds.has(review.id)
                     ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
-                    : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-[#334155] dark:text-gray-200 dark:hover:bg-[#0f172a]'
                 }`}
                 aria-label="좋아요 토글"
               >
@@ -532,15 +532,15 @@ export default function HobbyReviewClient() {
 
       {/* 로딩 상태 */}
       {loading && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-          <p className="text-slate-600">취미 피드를 불러오는 중입니다...</p>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center dark:border-[#334155] dark:bg-[#111827]">
+          <p className="text-slate-600 dark:text-gray-300">취미 피드를 불러오는 중입니다...</p>
         </div>
       )}
 
       {/* 결과 없음 */}
       {!loading && hobbies.length === 0 && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center">
-          <p className="text-slate-600">아직 등록된 관심사 글이 없습니다.</p>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center dark:border-[#334155] dark:bg-[#111827]">
+          <p className="text-slate-600 dark:text-gray-300">아직 등록된 관심사 글이 없습니다.</p>
         </div>
       )}
     </section>

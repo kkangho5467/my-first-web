@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ImageIcon } from "lucide-react";
 import type { MockPost } from "@/content/blog-content";
 import { fetchCommunityPosts } from "@/app/hooks/useCommunityPosts";
 import { supabase } from "@/lib/supabaseClient";
@@ -31,6 +32,60 @@ const initialGuestbook: GuestbookItem[] = [
 function extractFirstImageUrl(html: string): string | null {
   const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
   return match?.[1] ?? null;
+}
+
+function normalizeThumbnailUrl(value: string | null | undefined): string | null {
+  const src = value?.trim();
+  if (!src) {
+    return null;
+  }
+
+  if (src.startsWith("https://") || src.startsWith("http://") || src.startsWith("/")) {
+    return src;
+  }
+
+  return null;
+}
+
+type ThumbnailImageProps = {
+  src: string | null | undefined;
+  alt: string;
+  borderClassName: string;
+  priority?: boolean;
+};
+
+function ThumbnailImage({ src, alt, borderClassName, priority = false }: ThumbnailImageProps) {
+  const normalizedSrc = normalizeThumbnailUrl(src);
+  const [hasImageError, setHasImageError] = useState(false);
+
+  if (!normalizedSrc) {
+    return null;
+  }
+
+  if (hasImageError) {
+    return (
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-slate-100 text-slate-400 dark:bg-[#111827] dark:text-gray-500 ${borderClassName}`}
+        aria-label={`${alt} 기본 이미지`}
+      >
+        <ImageIcon className="h-4 w-4" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={normalizedSrc}
+      alt={alt}
+      width={40}
+      height={40}
+      priority={priority}
+      loading={priority ? "eager" : "lazy"}
+      unoptimized={normalizedSrc.startsWith("http")}
+      onError={() => setHasImageError(true)}
+      className={`h-10 w-10 shrink-0 rounded-md border object-cover ${borderClassName}`}
+    />
+  );
 }
 
 export default function HomeDashboardGrid() {
@@ -158,77 +213,77 @@ export default function HomeDashboardGrid() {
         </section>
 
         <section className="grid gap-6 lg:grid-rows-[390px_310px]">
-          <article className="flex h-full flex-col rounded-xl border border-sky-200 bg-sky-100 p-3 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">커뮤니티 최신 글</h2>
+          <article className="flex h-full flex-col rounded-xl border border-sky-200 bg-sky-100 p-3 shadow-sm dark:border-[#334155] dark:bg-[#111827]">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-gray-200">커뮤니티 최신 글</h2>
             {latestCommunityPosts.length > 0 ? (
-              <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-                {latestCommunityPosts.map((post) => {
+              <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto dark:[&::-webkit-scrollbar-track]:bg-[#020617] dark:[&::-webkit-scrollbar-thumb]:bg-[#334155]">
+                {latestCommunityPosts.map((post, index) => {
                   const thumbnailSrc = post.thumbnail_url ?? null;
+                  const hasThumbnail = Boolean(normalizeThumbnailUrl(thumbnailSrc));
 
                   return (
-                  <li key={post.id} className="rounded-md bg-white/90 p-2 shadow-sm">
-                    <div className={`flex items-start ${thumbnailSrc ? "gap-2" : ""}`}>
-                      {thumbnailSrc ? (
-                        <Image
+                  <li key={post.id} className="rounded-md bg-white p-3 shadow-sm dark:border dark:border-[#334155] dark:bg-[#0f172a]">
+                    <div className={`flex items-start ${hasThumbnail ? "gap-3" : ""}`}>
+                      {hasThumbnail ? (
+                        <ThumbnailImage
                           src={thumbnailSrc}
                           alt="커뮤니티 썸네일"
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 shrink-0 rounded-md border border-sky-200 object-cover"
+                          borderClassName="border-sky-200 dark:border-[#334155]"
+                          priority={index === 0}
                         />
                       ) : null}
                       <div className="min-w-0 flex-1">
-                        <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">
+                        <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-semibold text-sky-700 dark:border-[#334155] dark:bg-[#111827] dark:text-gray-200">
                           {post.category ?? "자유수다"}
                         </span>
-                        <Link href={`/posts/${post.id}`} className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                        <Link href={`/posts/${post.id}`} className="mt-2 block line-clamp-2 text-sm font-bold text-slate-900 hover:underline dark:text-gray-100">
                           {post.title}
                         </Link>
-                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">{post.excerpt.replace(/<[^>]*>/g, "")}</p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-700 dark:text-gray-300">{post.excerpt.replace(/<[^>]*>/g, "")}</p>
                       </div>
                     </div>
                   </li>
                 )})}
               </ul>
             ) : (
-              <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
+              <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-600 shadow-sm dark:border dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-300">표시할 글이 없습니다.</p>
             )}
           </article>
 
-          <article className="flex h-full flex-col rounded-xl border border-lime-200 bg-lime-100 p-3 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">취미 탭 최신 글</h2>
+          <article className="flex h-full flex-col rounded-xl border border-lime-200 bg-lime-100 p-3 shadow-sm dark:border-[#334155] dark:bg-[#111827]">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-gray-200">취미 탭 최신 글</h2>
             {latestHobbyPosts.length > 0 ? (
-              <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-                {latestHobbyPosts.map((item) => {
+              <ul className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto dark:[&::-webkit-scrollbar-track]:bg-[#020617] dark:[&::-webkit-scrollbar-thumb]:bg-[#334155]">
+                {latestHobbyPosts.map((item, index) => {
                   const thumbnailSrc = item.thumbnail_url || extractFirstImageUrl(item.comment);
+                  const hasThumbnail = Boolean(normalizeThumbnailUrl(thumbnailSrc));
 
                   return (
-                  <li key={item.id} className="rounded-md border border-lime-200 bg-white p-2 shadow-sm">
-                    <div className={`flex items-start ${thumbnailSrc ? "gap-2" : ""}`}>
-                      {thumbnailSrc ? (
-                        <Image
+                  <li key={item.id} className="rounded-md border border-lime-200 bg-white p-3 shadow-sm dark:border-[#334155] dark:bg-[#0f172a]">
+                    <div className={`flex items-start ${hasThumbnail ? "gap-3" : ""}`}>
+                      {hasThumbnail ? (
+                        <ThumbnailImage
                           src={thumbnailSrc}
                           alt="취미 썸네일"
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 shrink-0 rounded-md border border-lime-200 object-cover"
+                          borderClassName="border-lime-200 dark:border-[#334155]"
+                          priority={index === 0}
                         />
                       ) : null}
                       <div className="min-w-0 flex-1">
-                        <span className="inline-flex rounded-full border border-lime-200 bg-lime-50 px-1.5 py-0.5 text-[10px] font-medium text-lime-700">
+                        <span className="inline-flex rounded-full border border-lime-200 bg-lime-50 px-2 py-1 text-[11px] font-semibold text-lime-700 dark:border-[#334155] dark:bg-[#111827] dark:text-gray-200">
                           {item.category}
                         </span>
-                        <Link href="/hobby" className="mt-1 block line-clamp-1 text-sm font-semibold text-slate-900 hover:underline">
+                        <Link href="/hobby" className="mt-2 block line-clamp-2 text-sm font-bold text-slate-900 hover:underline dark:text-gray-100">
                           {item.title}
                         </Link>
-                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-600">작성자: {item.author_nickname || "익명"}</p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-700 dark:text-gray-300">작성자: {item.author_nickname || "익명"}</p>
                       </div>
                     </div>
                   </li>
                 )})}
               </ul>
             ) : (
-              <p className="mt-3 rounded-lg bg-white/80 px-2.5 py-2 text-xs text-slate-600 shadow-sm">표시할 글이 없습니다.</p>
+              <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-600 shadow-sm dark:border dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-300">표시할 글이 없습니다.</p>
             )}
           </article>
         </section>

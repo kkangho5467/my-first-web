@@ -166,16 +166,6 @@ export default function DailyPostBoard() {
     [totalPages]
   );
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  useEffect(() => {
-    setSelectedPostIds((prev) => prev.filter((id) => posts.some((post) => post.id === id)));
-  }, [posts]);
-
   function handleTogglePostSelection(postId: string, checked: boolean) {
     setSelectedPostIds((prev) => {
       if (checked) {

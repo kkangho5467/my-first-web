@@ -1,172 +1,317 @@
-# 아키텍처
+# 블로그 아키텍처 설계서 (B회차 보강)
 
-## 1. 제품 목표
+## 1. 문서 목적
 
-- 게시글 읽기, 게시글 작성, 커뮤니티 피드 탐색, 프로필 관리가 가능한 개인 블로그를 구축한다.
-- UI는 차분하고 가독성이 높으며, shadcn/ui 기반으로 확장하기 쉽게 유지한다.
-- Copilot이 라우트 구조나 데이터 관계를 추측하지 않고도 기능을 구현할 수 있도록 아키텍처를 명확히 문서화한다.
+- Ch1~6에서 구현한 블로그를 기준으로, Ch8~12(Supabase CRUD/인증/RLS) 확장을 위한 구조를 명확히 정의한다.
+- 화면 구조, 컴포넌트 계층, 데이터 모델, 권한 정책을 하나의 기준 문서로 통합한다.
+- 팀/AI가 동일한 기준으로 기능을 확장할 수 있게 의사결정 근거를 남긴다.
 
-## 2. 비목표
+## 2. 시스템 개요
 
-- Pages Router는 도입하지 않는다.
-- 별도의 CSS 프레임워크나 CSS-in-JS 레이어는 추가하지 않는다.
-- 현 단계에서 다중 작성자나 엔터프라이즈 워크플로우 최적화는 다루지 않는다.
-- 현재 블로그/커뮤니티 기능 범위를 넘어서 과도한 데이터 모델링을 하지 않는다.
+- 제품 성격: 개인 블로그 + 커뮤니티 작성/댓글 + 취미 피드
+- 라우팅: Next.js App Router 전용 (`app/`)
+- UI: Tailwind CSS v4 + shadcn/ui 우선
+- 데이터: Supabase(PostgreSQL, Auth, RLS, RPC)
 
-## 3. 페이지 맵
+핵심 도메인:
 
-현재 사이트는 블로그 라우트와 커뮤니티 라우트가 혼재되어 있다. 아래 기준 맵은 기존 라우트를 유지하면서, 향후 통합 시 목표로 하는 URL 구조를 함께 제시한다.
+- 게시글(`posts`)과 댓글(`comments`) 중심 커뮤니티
+- 사용자 프로필(`profiles`) 기반 작성자 식별
+- 취미 피드(`hobbies`)와 좋아요 관계(`hobby_likes`)
 
-| 경로 | 상태 | 목적 | 주요 UI |
+## 3. 페이지 맵 (URL 구조)
+
+| 경로 | 상태 | 목적 | 비고 |
 | --- | --- | --- | --- |
-| / | 현재 | 홈 대시보드 및 진입점 | 히어로, 요약 카드, 최신 콘텐츠 |
-| /daily | 별칭 | /posts로 리디렉션되는 호환 경로 | 레거시 링크 호환 |
-| /community/write | 현재 | 커뮤니티 게시글 작성/수정(운영 경로) | 에디터 폼, 카테고리 선택, 제출 액션 |
-| /posts/[id] | 현재 | 게시글 상세 페이지 | 본문, 작성자 정보, 댓글, 액션 버튼 |
-| /auth | 현재 | 로그인/회원가입 진입 | 인증 폼, 상태 안내 |
-| /mypage | 현재 | 프로필/계정 관리 | 프로필 카드, 아바타 편집, 설정 |
-| /hobby | 현재 | 취미 콘텐츠 개요 | 콘텐츠 카드 또는 리뷰 레이아웃 |
-| /goals | 현재 | 목표 및 진행 기록 | 목표 목록, 마일스톤 카드 |
-| /posts | 현재 | 표준 공개 게시글 인덱스 | 목록, 필터, 페이지네이션 |
-| /posts/new | 현재 | 표준 게시글 작성 라우트(community/write 재사용) | 작성 폼, 에디터, 발행 액션 |
+| `/` | 운영 중 | 홈 대시보드 | 최신 커뮤니티/취미, 방명록, 추천 영상 |
+| `/posts` | 운영 중 | 커뮤니티 목록 | 검색/카테고리/페이지네이션 |
+| `/posts/[id]` | 운영 중 | 게시글 상세 | 본문, 댓글, 좋아요, 수정/삭제 |
+| `/posts/new` | 운영 중 | 표준 작성 경로 | 내부적으로 `/community/write` 로직 재사용 |
+| `/community/write` | 운영 중 | 게시글 작성/수정 | 쿼리(`mode=edit&id=`) 기반 편집 |
+| `/daily` | 호환 경로 | 레거시 링크 대응 | `/posts`로 alias/리디렉션 |
+| `/auth` | 운영 중 | 로그인/회원가입 | 인증 게이트 진입점 |
+| `/mypage` | 운영 중 | 프로필 관리 | 인증 필요 |
+| `/hobby` | 운영 중 | 취미 피드 | 카드 목록, 좋아요 토글 |
+| `/goals` | 운영 중 | 목표 관리 | 보조 기능 페이지 |
 
-## 4. AI 와이어프레임
+인증 보호 경로:
 
-아래 와이어프레임은 구현 전에 Copilot Vision 또는 v0로 우선 생성해야 하는 첫 2개 화면이다. 생성 후에는 별도 디자인 자산으로 첨부한다.
+- `/mypage`
+- `/posts/new`
+- `/community/write`
 
-### 와이어프레임 1: 홈 대시보드
+비로그인 접근 시:
 
-- 목표: 블로그 아이덴티티, 최신 콘텐츠, 읽기/작성으로 이어지는 가장 빠른 동선을 보여준다.
-- 구성: 상단 히어로, 압축된 지표 행, 추천 게시글 카드, 작성 흐름으로 연결되는 명확한 CTA.
-- 프롬프트: "Create a dark-first personal blog home screen for Next.js App Router. Use a centered hero, editorial card grid, warm accent color, and a strong primary CTA. The layout should feel spacious and premium, not generic."
-- 성공 기준: 한 번의 스크롤 안에서 정보 위계가 명확하고, 작성 액션을 쉽게 찾을 수 있다.
+- `/auth?notice=login-required`로 유도
 
-### 와이어프레임 2: 게시글 에디터
+## 4. AI 와이어프레임 기준
 
-- 목표: 작성 흐름을 단순하고 집중도 높게 만든다.
-- 구성: 고정형 페이지 헤더, 카테고리 선택, 제목 입력, 리치 텍스트 에디터, 도움말 노트, 하단 액션 바.
-- 프롬프트: "Create a focused blog post editor for a Next.js App Router app using shadcn/ui. The screen should feel clean, dark, and structured, with a clear form hierarchy, inline status hints, and a sticky submit bar."
-- 성공 기준: 제목/본문/발행 액션이 혼동 없이 모두 드러나고, 저장 흐름을 즉시 이해할 수 있다.
+제출용 자산:
+
+- `docs/wireframes/home-dashboard-v1.svg`
+- `docs/wireframes/post-editor-v1.svg`
+
+설계 원칙:
+
+- 홈: 빠른 탐색, 최신 콘텐츠 발견, 작성 전환 CTA 강조
+- 에디터: 카테고리/제목/본문/제출 흐름을 한 화면에서 명확히
 
 ## 5. 컴포넌트 계층
 
-### 앱 셸
+### 5.1 앱 셸
 
-- RootLayout
-  - 전역 메타데이터 및 폰트 설정
-  - globals 내 테마 변수
-- MainLayout
-  - Header
-    - 브랜드
-    - 주요 내비게이션
-    - 인증 상태 컨트롤
-    - 테마 토글
-  - 메인 콘텐츠 영역
+- `app/layout.tsx`
+  - 전역 메타/폰트/토큰 초기화
+- `app/components/MainLayout.tsx`
+  - Header(브랜드/메뉴/인증/테마)
+  - Main 컨테이너
   - Footer
 
-### 페이지 레벨 구성
+### 5.2 홈
 
-- 홈 페이지
-  - HomeDashboardGrid
-- 커뮤니티 피드
-  - DailyPostBoard
-  - 검색 및 필터 컨트롤
-  - 페이지네이션 및 일괄 액션
-- 게시글 상세
-  - PostDetailClient
-  - 댓글 목록
-  - 댓글 폼
-  - 수정/삭제 액션
-- 인증 페이지
-  - AuthForm
-- 마이 페이지
-  - MyProfile
-  - 프로필 편집 컨트롤
+- `app/page.tsx`
+  - `HomeDashboardGrid`
+    - 커뮤니티 최신 글 패널
+    - 취미 탭 최신 글 패널
+    - 방명록
+    - 영상 카드
 
-### shadcn 초기화 이후 UI 레이어
+### 5.3 커뮤니티
 
-- components/ui/button.tsx
-- components/ui/card.tsx
-- components/ui/input.tsx
-- components/ui/textarea.tsx
-- components/ui/badge.tsx
-- components/ui/dialog.tsx
-- components/ui/dropdown-menu.tsx
-- components/ui/sheet.tsx
-- components/ui/tabs.tsx
-- components/ui/toast.tsx
+- `app/posts/page.tsx`
+  - `DailyPostBoard`
+  - 목록/검색/필터/선택 액션
+- `app/posts/[id]/page.tsx`
+  - `PostDetailClient`
+  - 댓글 목록/작성 폼/수정삭제 액션
+- `app/community/write/page.tsx`
+  - `QuillEditor`
+  - 작성/수정 단일 폼
 
-## 6. 데이터 모델
+### 5.4 인증/프로필/기타
 
-현재 코드 기준으로 이미 3개의 핵심 테이블이 전제되어 있다. 스키마는 단순하게 유지하되, 관계 중심으로 설계한다.
+- `app/auth/page.tsx` -> `AuthForm`
+- `app/mypage/page.tsx` -> `MyPageClient`, `MyProfile`
+- `app/hobby/page.tsx` -> `HobbyReviewClient`
+- `app/goals/page.tsx`
 
-확정 DDL 기준 파일:
+### 5.5 UI 프리미티브 레이어 (shadcn/ui)
 
-- supabase/migrations/20260415_001_core_schema.sql
+`components/ui/`
 
-### profiles
+- `button`, `card`, `input`, `textarea`, `badge`, `dialog`
+- 확장 예정: `tabs`, `sheet`, `dropdown-menu`, `toast`
 
-| 컬럼 | 타입 | 설명 |
-| --- | --- | --- |
-| id | uuid | 기본 키, auth 사용자 id와 동일 |
-| nickname | text | UI 표시 이름 |
-| avatar_url | text | 프로필 이미지 URL |
-| created_at | timestamptz | 생성 시각 |
-| updated_at | timestamptz | 수정 시각 |
+## 6. 데이터 접근 계층
 
-관계:
+원칙:
 
-- 인증 사용자당 프로필 1개, auth.users와 1:1
+- 표시 컴포넌트에서 직접 SQL/복잡 쿼리를 만들지 않는다.
+- `lib/` 또는 `app/hooks/`에서 데이터 로직을 캡슐화한다.
 
-### posts
+현재 구성:
 
-| 컬럼 | 타입 | 설명 |
-| --- | --- | --- |
-| id | uuid | 기본 키 |
-| title | text | 게시글 제목 |
-| content | text | HTML 또는 리치 텍스트 본문 |
-| category | text | 피드 카테고리, 기본값 자유수다 |
-| author_name | text | 캐시된 표시 이름 |
-| author_id | uuid | 프로필 또는 auth 사용자 참조 |
-| thumbnail_url | text | 선택적 대표 이미지 |
-| views | integer | 선택적 조회수 카운터 |
-| likes | integer | 선택적 반응 카운터 |
-| created_at | timestamptz | 생성 시각 |
-| updated_at | timestamptz | 수정 시각 |
+- `lib/supabaseClient.ts`: 클라이언트 인스턴스
+- `lib/supabaseAuth.ts`: 세션/유저 안전 접근
+- `app/hooks/useCommunityPosts.ts`: 게시글 CRUD/조회수/권한 보조
+- `app/hooks/usePostComments.ts`: 댓글 조회/작성/삭제
+
+## 7. 데이터 모델 (Supabase)
+
+### 7.1 핵심 테이블 (확정)
+
+기준 마이그레이션:
+
+- `supabase/migrations/20260415_001_core_schema.sql`
+- `supabase/migrations/20260429_001_posts_comments_hobbies_rls_baseline.sql` (RLS 초안 + hobbies 기준선)
+
+#### `profiles`
+
+- `id uuid` PK (`auth.users.id` 참조)
+- `nickname text`
+- `avatar_url text`
+- `created_at`, `updated_at`
 
 관계:
 
-- author_id를 통해 하나의 프로필에 여러 게시글이 연결됨 (1:N)
-- posts.author_id는 profiles.id를 참조하고, 작성 시 auth 사용자 id와 일관되게 저장해야 함
+- `auth.users` : `profiles` = 1:1
 
-### comments
+#### `posts`
 
-| 컬럼 | 타입 | 설명 |
-| --- | --- | --- |
-| id | uuid | 기본 키 |
-| post_id | uuid | 상위 게시글 참조 |
-| content | text | 댓글 본문 |
-| author_name | text | 캐시된 표시 이름 |
-| author_id | uuid | 댓글 작성자 참조 |
-| created_at | timestamptz | 생성 시각 |
-| updated_at | timestamptz | 수정 시각 |
+- `id uuid` PK
+- `title text`, `content text`, `category text`
+- `author_name text`, `author_id uuid` (`profiles.id` FK)
+- `thumbnail_url text` (nullable)
+- `views int`, `likes int`
+- `created_at`, `updated_at`
 
 관계:
 
-- post_id를 통해 하나의 게시글에 여러 댓글이 연결됨 (1:N)
-- author_id를 통해 하나의 프로필에 여러 댓글이 연결됨 (1:N)
+- `profiles` : `posts` = 1:N
 
-## 7. 통합 메모
+#### `comments`
 
-- Supabase 접근 코드는 표시 전용 컴포넌트가 아니라 helper 모듈과 훅에 유지한다.
-- /mypage, /community/write, 그리고 향후 /posts/new 라우트의 접근 보호 규칙을 명시적으로 유지한다.
-- 표준 /posts 라우트를 도입하기 전까지 현재 커뮤니티 라우트는 유지한다.
-- 에디터 흐름은 브라우저 API 의존성이 있으므로 클라이언트 사이드 리치 텍스트 편집 방식을 유지한다.
-- 선택 카운터 컬럼 정책은 views, likes 유지(기본값 0, 음수 금지)로 확정한다.
+- `id uuid` PK
+- `post_id uuid` (`posts.id` FK)
+- `content text`
+- `author_name text`, `author_id uuid` (`profiles.id` FK)
+- `created_at`, `updated_at`
 
-## 8. 라우트/보호 정책
+관계:
 
-- 표준 목록 경로는 /posts로 고정한다.
-- /daily는 레거시 링크 호환용 alias로 유지하며 /posts로 즉시 리디렉션한다.
-- 표준 작성 경로는 /posts/new로 고정하고, 현재 운영 구현은 /community/write 컴포넌트를 재사용한다.
-- 인증 보호 대상 경로는 /mypage, /posts/new, /community/write 이며 비로그인 사용자는 /auth?notice=login-required로 이동시킨다.
+- `posts` : `comments` = 1:N
+- `profiles` : `comments` = 1:N
+
+### 7.2 취미 도메인 테이블 (운영 중)
+
+코드에서 사용 중인 엔터티:
+
+- `hobbies` (취미 글)
+- `hobby_likes` (유저-취미 좋아요 관계)
+
+기준 마이그레이션:
+
+- `supabase/migrations/20260427_001_hobby_likes_toggle.sql`
+- `supabase/migrations/20260429_001_posts_comments_hobbies_rls_baseline.sql` (hobbies 기준선)
+
+`hobby_likes`:
+
+- PK: `(hobby_id, user_id)`
+- `hobby_id -> hobbies.id` FK
+- `user_id -> auth.users.id` FK
+
+RPC:
+
+- `toggle_hobby_like(p_hobby_id uuid)`
+  - 좋아요 토글 + `hobbies.likes_count` 증감
+
+관계:
+
+- `hobbies` : `hobby_likes` = 1:N
+- `auth.users` : `hobby_likes` = 1:N
+
+## 8. 인증/권한 아키텍처
+
+인증 소스:
+
+- Supabase Auth 세션
+
+UI 권한 원칙:
+
+- 비로그인: 작성/수정/삭제 버튼 제한 + 로그인 페이지 유도
+- 작성자: 본인 게시글/댓글 수정 삭제 가능
+- 관리자: 정책상 허용된 범위에서 전체 관리 가능(현재 코드에 prefix 기반 임시 로직 존재)
+
+권장 개선:
+
+- 관리자 판별을 클라이언트 문자열 비교 대신 DB role/claim으로 이전
+
+### 8.1 CRUD + 인증 흐름 매트릭스
+
+| 기능 | 라우트/화면 | 접근 계층 | 인증 요구 | 대상 테이블 |
+| --- | --- | --- | --- | --- |
+| 게시글 목록 조회(Read) | `/posts`, 홈 최신글 | `useCommunityPosts.fetchCommunityPosts` | 선택(비로그인 가능) | `posts` |
+| 게시글 상세 조회(Read) | `/posts/[id]` | `fetchPostById` | 선택(비로그인 가능) | `posts` |
+| 게시글 작성(Create) | `/posts/new`, `/community/write` | `createPostInSupabase` | 필수(로그인) | `posts` |
+| 게시글 수정(Update) | `/community/write?mode=edit&id=` | `updatePostInSupabase` | 필수(작성자/관리자) | `posts` |
+| 게시글 삭제(Delete) | `/posts/[id]` | `deletePostInSupabase` | 필수(작성자/관리자) | `posts` |
+| 댓글 조회(Read) | `/posts/[id]` | `fetchCommentsByPostId` | 선택(비로그인 가능) | `comments` |
+| 댓글 작성(Create) | `/posts/[id]` | `insertComment` | 필수(로그인) | `comments` |
+| 댓글 삭제(Delete) | `/posts/[id]` | `deleteMyComment` | 필수(작성자/관리자) | `comments` |
+| 취미 좋아요 토글(Update) | `/hobby` | `toggle_hobby_like` RPC | 필수(로그인) | `hobby_likes`, `hobbies` |
+
+인증 게이트 규칙:
+
+- 보호 경로 미인증 접근은 `/auth?notice=login-required`로 통일한다.
+- UI 조건문은 사용자 경험 보조용이며, 최종 권한은 RLS/DB 정책으로 보장한다.
+
+## 9. RLS 정책 설계 초안 (Ch8~12 대비)
+
+`profiles`
+
+- SELECT: 공개 또는 인증 사용자 읽기 허용
+- INSERT/UPDATE: 본인 row(`auth.uid() = id`)만 허용
+
+`posts`
+
+- SELECT: 공개
+- INSERT: 인증 사용자만, `author_id = auth.uid()` 강제
+- UPDATE/DELETE: 작성자 또는 관리자 role 허용
+
+적용 상태:
+
+- `posts_select_public`
+- `posts_insert_own`
+- `posts_update_own_or_admin`
+- `posts_delete_own_or_admin`
+
+`comments`
+
+- SELECT: 공개
+- INSERT: 인증 사용자만, `author_id = auth.uid()` 강제
+- DELETE: 작성자 또는 관리자 role 허용
+
+적용 상태:
+
+- `comments_select_public`
+- `comments_insert_own`
+- `comments_update_own_or_admin`
+- `comments_delete_own_or_admin`
+
+`hobby_likes`
+
+- SELECT/INSERT/DELETE: 본인 row만 허용 (이미 적용됨)
+
+적용된 정책(마이그레이션 기준):
+
+- `hobby_likes_select_own`
+- `hobby_likes_insert_own`
+- `hobby_likes_delete_own`
+
+RPC (`toggle_hobby_like`)
+
+- `security definer` 사용 시 권한 상승 범위를 최소화하고 입력 검증 필수
+
+관리자 권한 판별 함수:
+
+- `public.is_admin_user()` (`auth.jwt().app_metadata.role = 'admin'` 기준)
+
+## 10. 성능/운영 기준
+
+- 인덱스
+  - `posts(created_at desc)`
+  - `posts(category, created_at desc)`
+  - `comments(post_id, created_at desc)`
+  - `hobby_likes(user_id, created_at desc)`
+- 이미지
+  - 썸네일 실패 시 fallback 처리
+  - 이미지 없는 게시글은 썸네일 프레임 미표시
+- 검증
+  - `npm run lint`
+  - `npm run build`
+
+## 11. 폴더 구조 기준
+
+- `app/`: 라우트 + 페이지 단위 UI
+- `app/components/`: 페이지 조합 컴포넌트
+- `components/ui/`: shadcn 프리미티브
+- `app/hooks/`: 기능 단위 데이터 훅
+- `lib/`: 공통 유틸/Supabase 클라이언트
+- `supabase/migrations/`: SQL 기준선
+- `docs/wireframes/`: AI 와이어프레임 자산
+
+## 12. 구현 우선순위 (B회차 이후)
+
+1. RLS 정책을 실제 SQL로 확정하고 회귀 테스트 시나리오 작성
+2. 관리자 권한 판별을 role 기반으로 치환
+3. `hobbies` 테이블 DDL을 마이그레이션 기준선에 명시 추가
+4. CRUD 피드백을 alert 중심에서 toast 중심으로 통합
+5. 문서(`context.md`, `todo.md`)와 코드 상태를 주기적으로 동기화
+
+## 13. 문서 단일 기준 (Source of Truth)
+
+- 설계 기준: `ARCHITECTURE.md`
+- 상태 로그: `context.md`
+- 진행 체크: `todo.md`
+- Copilot 지침: `.github/copilot-instructions.md` 단일 파일을 기준으로 사용
+- 문서와 코드가 불일치하면 문서를 먼저 갱신한 뒤 코드에 반영한다.

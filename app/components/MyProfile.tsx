@@ -102,12 +102,6 @@ export default function MyProfile() {
   }, [clearUser, router, setAvatarUrl, setEmail, setNickname]);
 
   useEffect(() => {
-    if (!isEditing) {
-      setNicknameInput(nickname);
-    }
-  }, [isEditing, nickname]);
-
-  useEffect(() => {
     return () => {
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -502,7 +496,10 @@ export default function MyProfile() {
                 <p className="text-sm text-slate-800">{nickname || "설정되지 않음"}</p>
                 <button
                   type="button"
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setNicknameInput(nickname);
+                    setIsEditing(true);
+                  }}
                   className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-white"
                 >
                   수정

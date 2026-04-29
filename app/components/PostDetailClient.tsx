@@ -60,7 +60,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   const [post, setPost] = useState<MockPost | null>(initialPost);
   const [isLoadingPost, setIsLoadingPost] = useState(!initialPost);
   const [comments, setComments] = useState<PostComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -160,8 +160,31 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   }, [id, initialPost]);
 
   useEffect(() => {
-    void refetchComments();
-  }, [refetchComments]);
+    let isMounted = true;
+
+    async function loadInitialComments() {
+      try {
+        const nextComments = await fetchCommentsByPostId(id);
+        if (isMounted) {
+          setComments(nextComments);
+        }
+      } catch {
+        if (isMounted) {
+          setComments([]);
+        }
+      } finally {
+        if (isMounted) {
+          setCommentsLoading(false);
+        }
+      }
+    }
+
+    void loadInitialComments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   async function handleCreateComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -286,18 +309,18 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       {/* 게시글 컨테이너 */}
       <Card className="w-full rounded-xl border border-gray-200 bg-white p-0 shadow-sm md:p-0">
         {/* 헤더 영역 */}
-        <CardHeader className="border-b border-gray-200 pb-6">
-          {/* 카테고리 뱃지 */}
-          <div className="mb-4">
-            <Badge className="border-blue-200 bg-blue-100 text-blue-700">
+        <CardHeader className="border-b border-gray-200 px-6 pt-6 pb-6 md:px-8 md:pt-7">
+          <div className="flex flex-col gap-2">
+            {/* 카테고리 뱃지 */}
+            <Badge className="w-max border-blue-200 bg-blue-100 text-blue-700">
               {post.category || "자유수다"}
             </Badge>
-          </div>
 
-          {/* 제목 */}
-          <CardTitle className="mb-4 text-3xl font-bold tracking-tight text-gray-900">
-            {post.title}
-          </CardTitle>
+            {/* 제목 */}
+            <CardTitle className="text-3xl font-bold tracking-tight text-gray-900">
+              {post.title}
+            </CardTitle>
+          </div>
 
           {/* 메타 정보 */}
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
@@ -366,12 +389,12 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       </Card>
 
       <Card className="rounded-xl border border-slate-200 bg-white p-0 md:p-0">
-        <CardHeader>
+        <CardHeader className="px-6 pt-6 pb-4 md:px-8 md:pt-7">
         <h2 className="text-xl font-semibold text-slate-900">댓글</h2>
         <p className="mt-1 text-sm text-slate-500">댓글을 작성하거나 삭제할 수 있습니다.</p>
         </CardHeader>
 
-        <CardContent className="p-5 md:p-6">
+        <CardContent className="px-6 pb-6 md:px-8 md:pb-8">
 
         <form onSubmit={handleCreateComment} className="mt-4 space-y-3">
           <Textarea
@@ -381,12 +404,14 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
             rows={3}
             className="resize-y bg-white"
           />
-          <Button
-            type="submit"
-            disabled={currentUser ? newComment.trim().length === 0 : false}
-          >
-            {currentUser ? "댓글 등록" : "로그인 후 이용"}
-          </Button>
+          <div className="mt-2 flex justify-end">
+            <Button
+              type="submit"
+              disabled={currentUser ? newComment.trim().length === 0 : false}
+            >
+              {currentUser ? "댓글 등록" : "로그인 후 이용"}
+            </Button>
+          </div>
         </form>
 
         {commentsLoading ? (

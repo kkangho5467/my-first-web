@@ -40,9 +40,9 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       const Quill = (await import("quill")).default;
 
       // 글꼴 크기 옵션을 화이트리스트로 고정해 에디터/렌더 결과를 일치시킨다.
-      const Size = Quill.import("attributors/style/size") as any;
+      const Size = Quill.import("attributors/style/size") as { whitelist?: string[] };
       Size.whitelist = [...QUILL_SIZE_OPTIONS];
-      Quill.register(Size, true);
+      Quill.register("attributors/style/size", Size, true);
 
       const editorParent = editorElement.parentElement;
       if (editorParent) {
