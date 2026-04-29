@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { QuillOptionsStatic } from "quill";
+import type { QuillOptions } from "quill";
 import "quill/dist/quill.snow.css";
 
 const QUILL_SIZE_OPTIONS = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "30px"] as const;
@@ -40,7 +40,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       const Quill = (await import("quill")).default;
 
       // 글꼴 크기 옵션을 화이트리스트로 고정해 에디터/렌더 결과를 일치시킨다.
-      const Size = Quill.import("attributors/style/size");
+      const Size = Quill.import("attributors/style/size") as any;
       Size.whitelist = [...QUILL_SIZE_OPTIONS];
       Quill.register(Size, true);
 
@@ -52,7 +52,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
       }
       editorElement.innerHTML = "";
 
-      const editorOptions: QuillOptionsStatic = {
+      const editorOptions: QuillOptions = {
         theme: "snow",
         placeholder,
         modules: {
