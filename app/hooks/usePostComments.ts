@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "@/lib/supabaseClient";
+import { showGlobalToast } from "@/lib/toast";
 import type { User } from "@supabase/supabase-js";
 
 export type PostComment = {
@@ -39,7 +40,7 @@ export async function fetchCommentsByPostId(postId: string): Promise<PostComment
 
   if (error) {
     console.error("Failed to fetch comments:", error);
-    alert("댓글 목록을 불러오는 중 오류가 발생했습니다.");
+    showGlobalToast("댓글 목록을 불러오는 중 오류가 발생했습니다.");
     throw error;
   }
 
@@ -63,7 +64,7 @@ export async function insertComment(postId: string, content: string, user: User 
 
   if (error) {
     console.error("Failed to insert comment:", error);
-    alert("댓글 등록 중 오류가 발생했습니다.");
+    showGlobalToast("댓글 등록 중 오류가 발생했습니다.");
     throw error;
   }
 }
@@ -83,7 +84,7 @@ export async function deleteMyComment(
 
   // 작성자 또는 관리자만 삭제 가능.
   if (!isAdmin && currentUser?.id !== authorId) {
-    alert("삭제할 권한이 없습니다. 본인의 댓글만 삭제할 수 있습니다.");
+    showGlobalToast("삭제할 권한이 없습니다. 본인의 댓글만 삭제할 수 있습니다.");
     throw new Error("User is not authorized to delete this comment");
   }
 
@@ -96,7 +97,7 @@ export async function deleteMyComment(
 
   if (error) {
     console.error("Failed to delete comment:", error);
-    alert("댓글 삭제 중 오류가 발생했습니다.");
+    showGlobalToast("댓글 삭제 중 오류가 발생했습니다.");
     throw error;
   }
 }

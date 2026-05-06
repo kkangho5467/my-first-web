@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSafeSession } from '@/lib/supabaseAuth';
 import { supabase } from '@/lib/supabaseClient';
+import { confirmWithToast } from '@/lib/toast';
 
 interface HobbyItem {
   id: string;
@@ -239,7 +240,7 @@ export default function HobbyReviewClient() {
 
   const handleSubmit = async () => {
     if (!currentUserId) {
-      alert('로그인 후 작성할 수 있습니다.');
+      toast.error('로그인 후 작성할 수 있습니다.');
       return;
     }
 
@@ -249,7 +250,7 @@ export default function HobbyReviewClient() {
       !formData.title.trim() ||
       !formData.comment.trim()
     ) {
-      alert('닉네임, 카테고리, 제목, 소감을 모두 입력해주세요.');
+      toast.error('닉네임, 카테고리, 제목, 소감을 모두 입력해주세요.');
       return;
     }
 
@@ -288,9 +289,10 @@ export default function HobbyReviewClient() {
       setEditingId(null);
       setFormOpen(false);
       await fetchHobbies();
+      toast.success(editingId ? '관심사 글이 수정되었습니다.' : '관심사 글이 등록되었습니다.');
     } catch (err) {
       console.error('등록 오류:', err);
-      alert('등록 중 오류가 발생했습니다.');
+      toast.error('등록 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -298,12 +300,12 @@ export default function HobbyReviewClient() {
 
   const handleEditReview = (review: HobbyItem) => {
     if (!currentUserId) {
-      alert('로그인 후 이용할 수 있습니다.');
+      toast.error('로그인 후 이용할 수 있습니다.');
       return;
     }
 
     if (!isAdmin && review.author_id !== currentUserId) {
-      alert('수정 권한이 없습니다.');
+      toast.error('수정 권한이 없습니다.');
       return;
     }
 
@@ -320,27 +322,32 @@ export default function HobbyReviewClient() {
 
   const handleDeleteReview = async (review: HobbyItem) => {
     if (!currentUserId) {
-      alert('로그인 후 이용할 수 있습니다.');
+      toast.error('로그인 후 이용할 수 있습니다.');
       return;
     }
 
     if (!isAdmin && review.author_id !== currentUserId) {
-      alert('삭제 권한이 없습니다.');
+      toast.error('삭제 권한이 없습니다.');
       return;
     }
 
-    if (!window.confirm('해당 글을 삭제하시겠습니까?')) {
+    const confirmed = await confirmWithToast('해당 글을 삭제하시겠습니까?', {
+      actionLabel: '삭제',
+    });
+
+    if (!confirmed) {
       return;
     }
 
     const { error } = await supabase.from('hobbies').delete().eq('id', review.id);
     if (error) {
       console.error('삭제 오류:', error);
-      alert('삭제 중 오류가 발생했습니다.');
+      toast.error('삭제 중 오류가 발생했습니다.');
       return;
     }
 
     await fetchHobbies();
+    toast.success('관심사 글이 삭제되었습니다.');
   };
 
   return (

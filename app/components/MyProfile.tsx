@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useUserStore } from "@/store/useUserStore";
+import { toast } from "sonner";
 
 type UserProfile = {
   id: string;
@@ -78,7 +79,7 @@ export default function MyProfile() {
       }
 
       if (profileError) {
-        alert(profileError.message);
+        toast.error(profileError.message);
       }
 
       const existingProfile = profileData as UserProfile | null;
@@ -202,7 +203,7 @@ export default function MyProfile() {
       fileForUpload = await makeProcessedAvatarFile(selectedImageFile);
     } catch (error) {
       const message = error instanceof Error ? error.message : "이미지 처리 중 오류가 발생했습니다.";
-      alert(message);
+      toast.error(message);
       return null;
     }
 
@@ -217,7 +218,7 @@ export default function MyProfile() {
       });
 
     if (uploadError) {
-      alert(`이미지 업로드 실패: ${uploadError.message}`);
+      toast.error(`이미지 업로드 실패: ${uploadError.message}`);
       return null;
     }
 
@@ -227,12 +228,12 @@ export default function MyProfile() {
 
   async function handleSaveAvatarOnly() {
     if (!userId) {
-      alert("로그인한 유저 정보를 찾을 수 없습니다.");
+      toast.error("로그인한 유저 정보를 찾을 수 없습니다.");
       return;
     }
 
     if (!selectedImageFile) {
-      alert("저장할 이미지를 먼저 선택해 주세요.");
+      toast.error("저장할 이미지를 먼저 선택해 주세요.");
       return;
     }
 
@@ -250,7 +251,7 @@ export default function MyProfile() {
       });
 
       if (error) {
-        alert(error.message);
+        toast.error(error.message);
         return;
       }
 
@@ -264,7 +265,7 @@ export default function MyProfile() {
       setAvatarZoom(1);
       setAvatarOffsetX(0);
       setAvatarOffsetY(0);
-      alert("프로필 이미지가 업데이트되었습니다!");
+      toast.success("프로필 이미지가 업데이트되었습니다!");
     } finally {
       setIsSaving(false);
     }
@@ -272,12 +273,12 @@ export default function MyProfile() {
 
   async function handleSaveProfile() {
     if (!userId) {
-      alert("로그인한 유저 정보를 찾을 수 없습니다.");
+      toast.error("로그인한 유저 정보를 찾을 수 없습니다.");
       return;
     }
 
     if (!nicknameInput.trim()) {
-      alert("닉네임을 입력해 주세요.");
+      toast.error("닉네임을 입력해 주세요.");
       return;
     }
 
@@ -301,7 +302,7 @@ export default function MyProfile() {
       });
 
       if (error) {
-        alert(error.message);
+        toast.error(error.message);
         return;
       }
 
@@ -317,7 +318,7 @@ export default function MyProfile() {
       setAvatarOffsetX(0);
       setAvatarOffsetY(0);
       setIsEditing(false);
-      alert("프로필이 업데이트되었습니다!");
+      toast.success("프로필이 업데이트되었습니다!");
     } finally {
       setIsSaving(false);
     }

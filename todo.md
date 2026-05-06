@@ -50,36 +50,39 @@
 
 - [x] `context.md` 최신 상태 반영 완료
 
-## 4단계. 코드/문서 일관성 보강 - 70%
+## 4단계. 코드/문서 일관성 보강 - 100%
 
 - [x] 라이트/다크 모드 색상 정책 정리(다크에서만 어둡게)
 - [x] 홈 최신글 썸네일 fallback/미표시 정책 적용
 - [x] 상세 페이지 헤더/댓글 폼 여백 보정
-- [ ] 커뮤니티/취미 최신글 UI 토큰을 디자인 토큰 변수 기반으로 재정리
-- [ ] alert 기반 피드백을 toast 중심으로 일원화
+- [x] 커뮤니티/취미 최신글 UI 토큰을 디자인 토큰 변수 기반으로 재정리
+- [x] alert 기반 피드백을 toast 중심으로 일원화
 
-## 5단계. Supabase 대비 마무리 (Ch8~12 준비) - 55%
+## 5단계. Supabase 대비 마무리 (Ch8~12 준비) - 100%
 
 - [x] `hobby_likes` RLS 정책/토글 RPC 반영 상태 확인
 - [x] `posts`/`comments` RLS 정책 SQL 초안 파일 분리
-- [x] 관리자 권한 판별을 role/claim 기반으로 전환(정책 함수 초안 추가)
+- [x] 관리자 권한 판별을 `admin role claim` 기반으로 전환(정책 함수 초안 추가)
 - [x] `hobbies` 테이블 DDL 기준선 문서화(마이그레이션 명시)
-- [ ] 권한 회귀 테스트 시나리오 문서 추가
+- [x] 권한 회귀 테스트 시나리오 문서 추가
 
-## 6단계. 최종 제출 전 점검 - 60%
+## 6단계. 최종 제출 전 점검 - 90%
 
 - [x] 빌드 확인 (`npm run build`)
 - [x] 린트 재확인 (`npm run lint`)
 - [ ] 제출물 8개 항목 스크린샷/증빙 체크
-- [ ] 문서 간 용어 통일(경로명, 테이블명, 권한 용어)
+- [x] 문서 간 용어 통일(경로명, 테이블명, 권한 용어: `admin role claim`)
 
 ## 즉시 다음 액션 (우선순위)
 
-- [ ] `supabase/migrations`에 RLS 초안 SQL 추가
-- [ ] `hobbies` DDL 기준선 문서화
-- [ ] lint 최종 실행 후 결과를 `context.md`에 기록
+- [ ] 제출물 8개 항목 스크린샷/증빙 체크
+- [ ] 권한 회귀 테스트 시나리오 실행 결과(성공/실패) 채우기
+- [ ] 관리자 판별 클라이언트 분기 제거 계획 수립(`admin role claim` 완전 이관)
 
 완료 메모:
 
 - [x] `supabase/migrations/20260429_001_posts_comments_hobbies_rls_baseline.sql` 추가
 - [x] ARCHITECTURE/context/todo 동기화 완료
+- [x] `docs/permission-regression-tests.md` 추가
+- [x] `npm run lint` 재실행 통과(2026-05-04)
+- [x] RPG 대기실(Lobby) 페이지 및 DB 연동

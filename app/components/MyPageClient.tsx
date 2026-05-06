@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 type CurrentUserInfo = {
   email: string;
@@ -124,7 +125,7 @@ export default function MyPageClient() {
           : current
       );
       setNewNickname(nextNickname);
-      alert("닉네임이 변경되었습니다");
+      toast.success("닉네임이 변경되었습니다");
     } finally {
       setIsSubmitting(false);
     }

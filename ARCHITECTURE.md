@@ -200,11 +200,11 @@ UI 권한 원칙:
 
 - 비로그인: 작성/수정/삭제 버튼 제한 + 로그인 페이지 유도
 - 작성자: 본인 게시글/댓글 수정 삭제 가능
-- 관리자: 정책상 허용된 범위에서 전체 관리 가능(현재 코드에 prefix 기반 임시 로직 존재)
+- 관리자: `admin role claim`(`auth.jwt().app_metadata.role = 'admin'`) 보유자는 정책상 허용된 범위에서 전체 관리 가능
 
 권장 개선:
 
-- 관리자 판별을 클라이언트 문자열 비교 대신 DB role/claim으로 이전
+- 관리자 판별 용어를 `admin role claim` 기준으로 통일하고, 클라이언트 임시 분기를 정책 함수 기반으로 축소
 
 ### 8.1 CRUD + 인증 흐름 매트릭스
 
@@ -236,7 +236,7 @@ UI 권한 원칙:
 
 - SELECT: 공개
 - INSERT: 인증 사용자만, `author_id = auth.uid()` 강제
-- UPDATE/DELETE: 작성자 또는 관리자 role 허용
+- UPDATE/DELETE: 작성자 또는 `admin role claim` 보유자 허용
 
 적용 상태:
 
@@ -249,7 +249,7 @@ UI 권한 원칙:
 
 - SELECT: 공개
 - INSERT: 인증 사용자만, `author_id = auth.uid()` 강제
-- DELETE: 작성자 또는 관리자 role 허용
+- DELETE: 작성자 또는 `admin role claim` 보유자 허용
 
 적용 상태:
 
@@ -274,7 +274,7 @@ RPC (`toggle_hobby_like`)
 
 관리자 권한 판별 함수:
 
-- `public.is_admin_user()` (`auth.jwt().app_metadata.role = 'admin'` 기준)
+- `public.is_admin_user()` (`admin role claim`: `auth.jwt().app_metadata.role = 'admin'`)
 
 ## 10. 성능/운영 기준
 

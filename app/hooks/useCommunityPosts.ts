@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
 import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { showGlobalToast } from "@/lib/toast";
 import type { User } from "@supabase/supabase-js";
 
 type PostRow = {
@@ -196,7 +197,7 @@ export async function createPostInSupabase(
         code: error.code,
         details: error,
       });
-      alert(`게시글 작성 중 오류가 발생했습니다: ${error.message}`);
+      showGlobalToast(`게시글 작성 중 오류가 발생했습니다: ${error.message}`);
       throw error;
     }
   } catch (error) {
@@ -237,7 +238,7 @@ export async function updatePostInSupabase(
 
   if (error) {
     console.error("Failed to update post:", error);
-    alert("게시글 수정 중 오류가 발생했습니다.");
+    showGlobalToast("게시글 수정 중 오류가 발생했습니다.");
     throw error;
   }
 }
@@ -265,15 +266,15 @@ export async function deletePostsInSupabase(postIds: string[], currentUser: User
   }
 
   if (!isAdmin(currentUser)) {
-    alert("관리자만 선택 삭제를 사용할 수 있습니다.");
-    return;
+    showGlobalToast("관리자만 선택 삭제를 사용할 수 있습니다.");
+    throw new Error("관리자만 선택 삭제를 사용할 수 있습니다.");
   }
 
   const { error } = await supabase.from("posts").delete().in("id", postIds);
 
   if (error) {
     console.error("Failed to delete selected posts:", error);
-    alert("선택한 게시글 삭제 중 오류가 발생했습니다.");
+    showGlobalToast("선택한 게시글 삭제 중 오류가 발생했습니다.");
     throw error;
   }
 }

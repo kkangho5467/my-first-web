@@ -19,7 +19,7 @@ const menuItems = [
   { label: "홈", href: "/" },
   { label: "커뮤니티", href: "/daily" },
   { label: "취미", href: "/hobby" },
-  { label: "목표", href: "/goals" },
+  { label: "RPG", href: "/rpg" },
   { label: "마이페이지", href: "/mypage" },
 ];
 

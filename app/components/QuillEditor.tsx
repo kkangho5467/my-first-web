@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { QuillOptions } from "quill";
+import { toast } from "sonner";
 import "quill/dist/quill.snow.css";
 
 const QUILL_SIZE_OPTIONS = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "30px"] as const;
@@ -136,7 +137,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
             quillRef.current.setSelection(insertIndex + 1, 0);
           } catch (error) {
             console.error("Failed to upload image:", error);
-            alert("이미지 업로드에 실패했습니다.");
+            toast.error("이미지 업로드에 실패했습니다.");
           } finally {
             event.target.value = "";
           }

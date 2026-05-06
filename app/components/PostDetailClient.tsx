@@ -9,6 +9,7 @@ import type { MockPost } from "@/content/blog-content";
 import type { User } from "@supabase/supabase-js";
 import { getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { confirmWithToast } from "@/lib/toast";
 import { 
   deletePostInSupabase,
   fetchPostById,
@@ -200,7 +201,11 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    if (!window.confirm("댓글을 등록하시겠습니까?")) {
+    const confirmed = await confirmWithToast("댓글을 등록하시겠습니까?", {
+      actionLabel: "등록",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -214,7 +219,11 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   }
 
   async function handleDeleteComment(comment: PostComment) {
-    if (!window.confirm("댓글을 삭제하시겠습니까?")) {
+    const confirmed = await confirmWithToast("댓글을 삭제하시겠습니까?", {
+      actionLabel: "삭제",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -245,7 +254,11 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    if (!window.confirm("글을 삭제하시겠습니까?")) {
+    const confirmed = await confirmWithToast("글을 삭제하시겠습니까?", {
+      actionLabel: "삭제",
+    });
+
+    if (!confirmed) {
       return;
     }
 

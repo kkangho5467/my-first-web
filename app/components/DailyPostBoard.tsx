@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSafeSession, getSafeUser } from "@/lib/supabaseAuth";
 import { supabase } from "@/lib/supabaseClient";
-import { showGlobalToast } from "@/lib/toast";
+import { confirmWithToast, showGlobalToast } from "@/lib/toast";
 import { useCommunityPosts } from "@/app/hooks/useCommunityPosts";
 import { POSTS_PER_PAGE, paginatePosts } from "@/lib/paginatePosts";
 import { searchPostsByTitleOrContent } from "@/lib/searchPosts";
@@ -14,6 +14,7 @@ import type { MockPost } from "@/content/blog-content";
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
 const EMPTY_INITIAL_POSTS: MockPost[] = [];
@@ -114,7 +115,11 @@ export default function DailyPostBoard() {
   }, []);
 
   async function handleDelete(postId: string, postAuthorId: string) {
-    if (!window.confirm("글을 삭제하시겠습니까?")) {
+    const confirmed = await confirmWithToast("글을 삭제하시겠습니까?", {
+      actionLabel: "삭제",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -133,7 +138,7 @@ export default function DailyPostBoard() {
   function goToEditPage(postId: string, postAuthorId: string) {
     // 권한 확인
     if (!isAdmin(user) && user?.id !== postAuthorId) {
-      alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+      toast.error("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
       return;
     }
 
@@ -193,7 +198,11 @@ export default function DailyPostBoard() {
       return;
     }
 
-    if (!window.confirm(`선택한 ${validSelectedPostIds.length}개의 글을 삭제하시겠습니까?`)) {
+    const confirmed = await confirmWithToast(`선택한 ${validSelectedPostIds.length}개의 글을 삭제하시겠습니까?`, {
+      actionLabel: "선택 삭제",
+    });
+
+    if (!confirmed) {
       return;
     }
 

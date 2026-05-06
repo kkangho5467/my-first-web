@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -80,17 +81,17 @@ export default function AuthForm() {
     }
 
     if (!/^[A-Za-z0-9]{4,20}$/.test(normalizedUsername)) {
-      alert("아이디는 4~20자의 영문과 숫자만 사용 가능합니다.");
+      toast.error("아이디는 4~20자의 영문과 숫자만 사용 가능합니다.");
       return;
     }
 
     if (!/^[가-힣A-Za-z0-9]{2,8}$/.test(normalizedNickname)) {
-      alert("닉네임은 특수문자 없이 한글, 영문, 숫자만 가능하고 2자 이상 8자 이하여야 합니다.");
+      toast.error("닉네임은 특수문자 없이 한글, 영문, 숫자만 가능하고 2자 이상 8자 이하여야 합니다.");
       return;
     }
 
     if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(trimmedPassword)) {
-      alert("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야 합니다.");
+      toast.error("비밀번호는 영문, 숫자, 특수문자를 포함하여 8자 이상이어야 합니다.");
       return;
     }
 
@@ -106,7 +107,7 @@ export default function AuthForm() {
       });
 
       if (!existingSignInError) {
-        alert("이미 가입된 계정으로 로그인되었습니다.");
+        toast.success("이미 가입된 계정으로 로그인되었습니다.");
         router.push("/");
         router.refresh();
         return;
@@ -132,7 +133,7 @@ export default function AuthForm() {
         return;
       }
 
-      alert("회원가입이 완료되었습니다.");
+      toast.success("회원가입이 완료되었습니다.");
       router.push("/");
       router.refresh();
     } catch (error) {
@@ -166,7 +167,7 @@ export default function AuthForm() {
         return;
       }
 
-      alert("로그인에 성공했습니다.");
+      toast.success("로그인에 성공했습니다.");
       router.push("/");
       router.refresh();
     } catch (error) {

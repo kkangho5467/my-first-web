@@ -10,6 +10,7 @@ import { uploadImageToSupabase } from "@/lib/uploadImageToSupabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = ["자유수다", "질문/답변", "정보공유"] as const;
 
@@ -83,7 +84,7 @@ export default function CommunityWritePage() {
         const post = await fetchPostById(postId);
 
         if (!post) {
-          alert("게시글을 찾을 수 없습니다.");
+          toast.error("게시글을 찾을 수 없습니다.");
           router.push("/posts");
           return;
         }
@@ -92,7 +93,7 @@ export default function CommunityWritePage() {
 
         if (!canEdit) {
           // 작성자/관리자 외에는 편집 모드 접근을 막는다.
-          alert("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
+          toast.error("수정 권한이 없습니다. 작성자나 관리자만 수정할 수 있습니다.");
           router.push(`/posts/${postId}`);
           return;
         }
@@ -150,12 +151,12 @@ export default function CommunityWritePage() {
     const trimmedContent = content.trim();
 
     if (!trimmedTitle) {
-      alert("제목을 입력해주세요.");
+      toast.error("제목을 입력해주세요.");
       return;
     }
 
     if (!trimmedContent) {
-      alert("본문을 입력해주세요.");
+      toast.error("본문을 입력해주세요.");
       return;
     }
 
@@ -165,16 +166,16 @@ export default function CommunityWritePage() {
 
       if (isEditMode && currentEditingPostId) {
         await updatePostInSupabase(currentEditingPostId, trimmedTitle, trimmedContent, category, thumbnailUrl);
-        alert("글이 수정되었습니다.");
+        toast.success("글이 수정되었습니다.");
         router.push(`/posts/${currentEditingPostId}`);
       } else {
         await createPostInSupabase(trimmedTitle, trimmedContent, category, thumbnailUrl);
-        alert("글이 등록되었습니다.");
+        toast.success("글이 등록되었습니다.");
         router.push("/posts");
       }
     } catch (error) {
       console.error("Failed to save post:", error instanceof Error ? error.message : error);
-      alert(isEditMode ? "글 수정에 실패했습니다." : "글 등록에 실패했습니다.");
+      toast.error(isEditMode ? "글 수정에 실패했습니다." : "글 등록에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }

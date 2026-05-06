@@ -3,7 +3,7 @@
 ## 기준 정보
 
 - 워크스페이스: c:\my-first-web
-- 최신 갱신일: 2026-04-29
+- 최신 갱신일: 2026-05-04
 - 프레임워크: Next.js 16.2.1 (App Router)
 - 런타임: React 19.2.4
 - 스타일: Tailwind CSS v4 + shadcn/ui
@@ -45,6 +45,7 @@
 - 보호 라우트: `/mypage`, `/posts/new`, `/community/write`
 - 비로그인 사용자는 `/auth?notice=login-required`로 이동.
 - UI 레벨에서 작성자/관리자 권한 분기 존재.
+- 관리자 권한 용어는 `admin role claim`(`auth.jwt().app_metadata.role = 'admin'`)으로 통일.
 - `hobby_likes`는 RLS 정책이 적용되어 본인 row 접근만 허용.
 
 ## 최근 반영 사항 (B회차 문서화 기준)
@@ -61,12 +62,15 @@
 	- 이미지 없음: 썸네일 프레임 미표시
 	- 이미지 URL 존재 + 로드 실패: fallback 표시
 - 상세 페이지 헤더/댓글 영역의 레이아웃 여백 개선.
+- 커뮤니티/취미 최신글 카드 UI를 디자인 토큰(`bg-surface`, `bg-surface-2`, `border-border`, `text-foreground`) 기반으로 정리.
+- 코드베이스의 `alert/confirm` 호출을 toast + toast confirm 헬퍼(`confirmWithToast`)로 일원화.
+- 권한 회귀 테스트 문서 `docs/permission-regression-tests.md` 추가.
+- 2026-05-04 최종 린트 재실행 결과: `npm run lint` 통과(오류 0건).
 
 ## 남은 리스크
 
-- `hobbies` 테이블 DDL이 마이그레이션 기준 문서에 명시적으로 정리되어 있지 않음.
-- 관리자 판별이 일부 클라이언트 문자열 비교 로직에 의존.
-- posts/comments 테이블 RLS 정책 SQL 확정 문서가 필요.
+- 일부 화면은 관리자 판별을 클라이언트 분기에도 의존하고 있어 `admin role claim` 기반 정책 함수 연동을 추가 정리해야 함.
+- 제출물 8개 항목 스크린샷/증빙 수집은 수동 점검이 필요함.
 
 ## 문서 기준 계약
 
