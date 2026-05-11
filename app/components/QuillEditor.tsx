@@ -96,7 +96,10 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
 
     return () => {
       isMounted = false;
-      quillRef.current = null;
+      if (quillRef.current) {
+        quillRef.current.disable();
+        quillRef.current = null;
+      }
 
       const editorParent = editorElement?.parentElement;
       if (editorParent) {
@@ -109,7 +112,21 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
         editorElement.innerHTML = "";
       }
     };
-  }, [placeholder, value]);
+  }, [placeholder]);
+
+  useEffect(() => {
+    if (!quillRef.current) {
+      return;
+    }
+
+    const initialHtml = value.trim();
+    const currentHtml = quillRef.current.root.innerHTML;
+
+    // 외부에서 value 변경이 왔을 때만 에디터 업데이트 (사용자 타이핑 제외)
+    if (initialHtml && initialHtml !== currentHtml) {
+      quillRef.current.clipboard.dangerouslyPasteHTML(initialHtml, "silent");
+    }
+  }, [value]);
 
   return (
     <>

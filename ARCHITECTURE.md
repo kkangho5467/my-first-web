@@ -131,6 +131,7 @@
 - `nickname text`
 - `avatar_url text`
 - `created_at`, `updated_at`
+- `auth.users` 가입 트리거로 자동 생성
 
 관계:
 

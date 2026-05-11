@@ -3,6 +3,7 @@
 ## 대상 마이그레이션
 
 - supabase/migrations/20260415_001_core_schema.sql
+- supabase/migrations/20260511_001_profiles_autocreate.sql
 
 ## 적용 전 체크리스트
 
