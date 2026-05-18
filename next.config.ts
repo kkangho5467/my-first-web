@@ -15,6 +15,7 @@ const supabaseHost = (() => {
 
 const nextConfig: NextConfig = {
   images: {
+    dangerouslyAllowLocalIP: true,
     remotePatterns: supabaseHost
       ? [
           {
