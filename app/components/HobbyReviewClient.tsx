@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { getSafeSession } from '@/lib/supabaseAuth';
 import { supabase } from '@/lib/supabaseClient';
@@ -49,6 +50,7 @@ function parseSupabaseError(error: unknown): { code?: string; message: string } 
 }
 
 export default function HobbyReviewClient() {
+  const router = useRouter();
   const [hobbies, setHobbies] = useState<HobbyItem[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -143,6 +145,10 @@ export default function HobbyReviewClient() {
     };
   }, []);
 
+  const redirectToAuthWithNotice = () => {
+    router.push('/auth?notice=login-required');
+  };
+
   const handleLike = async (id: string) => {
     const target = hobbies.find((item) => item.id === id);
     if (!target) {
@@ -153,9 +159,9 @@ export default function HobbyReviewClient() {
       return;
     }
 
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError || !authData.user) {
+    if (!currentUserId) {
       toast.error('로그인이 필요한 기능입니다.');
+      redirectToAuthWithNotice();
       return;
     }
 
@@ -241,6 +247,7 @@ export default function HobbyReviewClient() {
   const handleSubmit = async () => {
     if (!currentUserId) {
       toast.error('로그인 후 작성할 수 있습니다.');
+      redirectToAuthWithNotice();
       return;
     }
 
@@ -368,6 +375,12 @@ export default function HobbyReviewClient() {
               setFormOpen(false);
               setEditingId(null);
             } else {
+              if (!currentUserId) {
+                toast.error('취미 글 작성은 로그인 후 이용할 수 있습니다.');
+                redirectToAuthWithNotice();
+                return;
+              }
+
               setFormOpen(true);
               setEditingId(null);
               setFormData({
@@ -516,22 +529,35 @@ export default function HobbyReviewClient() {
 
             {/* 하단: 좋아요 */}
             <div className="mt-4 border-t border-slate-100 pt-4 dark:border-[#334155]">
-              <button
-                onClick={() => handleLike(review.id)}
-                disabled={likingIds.has(review.id)}
-                className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  likedHobbyIds.has(review.id)
-                    ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
-                    : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-[#334155] dark:text-gray-200 dark:hover:bg-[#0f172a]'
-                }`}
-                aria-label="좋아요 토글"
-              >
-                <Heart
-                  className="h-4 w-4"
-                  fill={likedHobbyIds.has(review.id) ? 'currentColor' : 'none'}
-                />
-                좋아요 {review.likes_count || 0}
-              </button>
+              {currentUserId ? (
+                <button
+                  onClick={() => handleLike(review.id)}
+                  disabled={likingIds.has(review.id)}
+                  className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    likedHobbyIds.has(review.id)
+                      ? 'border-red-300 bg-red-50 text-red-600 hover:bg-red-100'
+                      : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-[#334155] dark:text-gray-200 dark:hover:bg-[#0f172a]'
+                  }`}
+                  aria-label="좋아요 토글"
+                >
+                  <Heart
+                    className="h-4 w-4"
+                    fill={likedHobbyIds.has(review.id) ? 'currentColor' : 'none'}
+                  />
+                  좋아요 {review.likes_count || 0}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={redirectToAuthWithNotice}
+                  className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:border-[#334155] dark:bg-[#0f172a] dark:text-gray-300 dark:hover:bg-[#111827]"
+                  aria-label="로그인 후 좋아요 가능"
+                >
+                  <Lock className="h-4 w-4" />
+                  로그인 후 좋아요
+                  <span className="text-xs">({review.likes_count || 0})</span>
+                </button>
+              )}
             </div>
           </article>
         ))}

@@ -58,14 +58,16 @@ function formatKoreaDateTime(raw: string): string {
 export default function PostDetailClient({ id, initialPost }: PostDetailClientProps) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [post, setPost] = useState<MockPost | null>(initialPost);
   const [isLoadingPost, setIsLoadingPost] = useState(!initialPost);
   const [comments, setComments] = useState<PostComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState((initialPost?.likes as number) || 0);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [isLikingInProgress, setIsLikingInProgress] = useState(false);
 
   const isPostAuthor = Boolean(post && currentUser?.id === post.author_id);
   
@@ -77,6 +79,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
       if (isMounted) {
         setCurrentUser(user);
+        setAuthLoading(false);
       }
     }
 
@@ -88,6 +91,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       // 인증 상태 변경을 즉시 반영해 댓글/수정/삭제 권한 UI를 맞춘다.
       if (isMounted) {
         setCurrentUser(session?.user ?? null);
+        setAuthLoading(false);
       }
     });
 
@@ -95,6 +99,44 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       isMounted = false;
       subscription.unsubscribe();
     };
+  }, []);
+
+  const loadLikeState = useCallback(async (postId: string, user?: User | null) => {
+    try {
+      const postIdNum = Number(postId);
+      if (isNaN(postIdNum)) {
+        console.error('유효하지 않은 post_id:', postId);
+        return;
+      }
+
+      const countPromise = supabase
+        .from('likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('post_id', postIdNum);
+
+      const userPromise = user?.id
+        ? supabase
+            .from('likes')
+            .select('id')
+            .eq('post_id', postIdNum)
+            .eq('user_id', user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
+
+      const [countRes, userRes] = await Promise.all([countPromise, userPromise]);
+
+      if (countRes.error) {
+        console.error('좋아요 개수 조회 실패:', countRes.error.message || countRes.error);
+      }
+      setLikeCount(countRes.count || 0);
+
+      if (userRes && userRes.error) {
+        console.error('유저 좋아요 조회 실패:', userRes.error.message || userRes.error);
+      }
+      setIsLiked(!!(userRes && userRes.data));
+    } catch (err) {
+      console.error('좋아요 상태 로드 실패:', err instanceof Error ? err.message : String(err));
+    }
   }, []);
 
   const refetchComments = useCallback(async () => {
@@ -110,9 +152,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
   }, [id]);
 
   useEffect(() => {
-    // 서버 컴포넌트에서 initialPost를 내려준 경우 중복 fetch를 생략한다.
+    // 서버 컴포넌트에서 initialPost를 내려준 경우라도 포스트 데이터 로드는 생략하되
+    // 좋아요 상태는 인증이 확실히 끝난 뒤 별도의 effect에서 로드한다.
     if (initialPost) {
-      return;
+      // keep post from initial props, don't fetch postData
     }
 
     async function loadPost() {
@@ -158,7 +201,14 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     }
 
     void loadPost();
-  }, [id, initialPost]);
+  }, [id, initialPost, loadLikeState]);
+
+  // 인증이 완료되면(loading=false) 좋아요 상태와 유저별 좋아요 여부를 로드
+  useEffect(() => {
+    if (!authLoading) {
+      void loadLikeState(id, currentUser);
+    }
+  }, [id, currentUser, authLoading, loadLikeState]);
 
   useEffect(() => {
     let isMounted = true;
@@ -186,6 +236,88 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       isMounted = false;
     };
   }, [id]);
+
+  const handleLikeToggle = async () => {
+    // 로그인 상태 확인
+    if (!currentUser) {
+      toast.error('로그인이 필요한 기능입니다.');
+      router.push('/auth?notice=login-required');
+      return;
+    }
+
+    // 인증 로딩 중이면 동작 금지
+    if (authLoading) {
+      console.log('Auth loading 중 - 좋아요 동작 중단');
+      return;
+    }
+
+    // user.id 유효성 검사
+    if (!currentUser.id) {
+      console.error('currentUser.id가 존재하지 않습니다');
+      toast.error('사용자 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    if (isLikingInProgress) {
+      return;
+    }
+
+    const postIdNum = Number(id);
+    if (isNaN(postIdNum)) {
+      console.error('유효하지 않은 post_id:', id);
+      toast.error('게시글 정보를 확인할 수 없습니다.');
+      return;
+    }
+
+    setIsLikingInProgress(true);
+
+    // 낙관적 UI 업데이트: 서버 요청 전 화면 반영
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikeCount((prev) => (wasLiked ? prev - 1 : prev + 1));
+
+    try {
+      if (wasLiked) {
+        // 좋아요 제거
+        console.log(`[좋아요 제거 요청] post_id=${postIdNum}, user_id=${currentUser.id}`);
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .match({ post_id: postIdNum, user_id: currentUser.id });
+
+        if (error) {
+          console.error('Supabase DB 에러 (DELETE):', error.message || error);
+          throw error;
+        }
+        console.log('[좋아요 제거] 성공');
+      } else {
+        // 좋아요 추가
+        console.log(`[좋아요 추가 요청] post_id=${postIdNum}, user_id=${currentUser.id}`);
+        const { error } = await supabase
+          .from('likes')
+          .insert([{ post_id: postIdNum, user_id: currentUser.id }]);
+
+        if (error) {
+          console.error('Supabase DB 에러 (INSERT):', error.message || error);
+          throw error;
+        }
+        console.log('[좋아요 추가] 성공');
+      }
+
+      // 서버 반영된 최신 카운트 및 유저 상태 로드
+      await loadLikeState(id, currentUser);
+    } catch (err) {
+      console.error('좋아요 처리 실패:', err instanceof Error ? err.message : String(err));
+      toast.error('좋아요 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+
+      // 롤백: 이전 로컬 상태로 되돌리고 DB 상태로 재동기화
+      setIsLiked(wasLiked);
+      setLikeCount((prev) => (wasLiked ? prev + 1 : prev - 1));
+      await loadLikeState(id, currentUser);
+    } finally {
+      setIsLikingInProgress(false);
+    }
+  };
 
   async function handleCreateComment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -378,25 +510,36 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
           </div>
         )}
 
-        {/* 좋아요 버튼 */}
+        {/* 좋아요 */}
         <div className="flex justify-center border-t border-gray-200 py-6">
-          <Button
-            onClick={() => {
-              setIsLiked(!isLiked);
-              setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
-            }}
-            type="button"
-            className={`flex items-center gap-2 border-2 px-6 py-3 font-medium ${
-              isLiked
-                ? "border-red-400 bg-red-50 text-red-600 hover:bg-red-100"
-                : "border-gray-300 bg-white text-gray-600 hover:border-red-300 hover:bg-red-50 hover:text-red-500"
-            }`}
-            variant="outline"
-            size="lg"
-          >
-            <span className="text-xl">♥</span>
-            <span>{isLiked ? `좋아요 ${likeCount}` : "좋아요"}</span>
-          </Button>
+          {currentUser ? (
+            <Button
+              onClick={handleLikeToggle}
+              disabled={isLikingInProgress}
+              type="button"
+              className={`flex items-center gap-2 border-2 px-6 py-3 font-medium ${
+                isLiked
+                  ? "border-red-400 bg-red-50 text-red-600 hover:bg-red-100"
+                  : "border-gray-300 bg-white text-gray-600 hover:border-red-300 hover:bg-red-50 hover:text-red-500"
+              }`}
+              variant="outline"
+              size="lg"
+            >
+              <span className="text-xl">♥</span>
+              <span>{isLiked ? `좋아요 ${likeCount}` : `좋아요 ${likeCount}`}</span>
+            </Button>
+          ) : (
+            <div className="text-center">
+              <p className="text-sm font-medium text-slate-600">좋아요 {likeCount}</p>
+              <button
+                type="button"
+                onClick={() => router.push("/auth?notice=login-required")}
+                className="mt-1 text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700"
+              >
+                로그인 후 좋아요를 누를 수 있습니다
+              </button>
+            </div>
+          )}
         </div>
         </CardContent>
       </Card>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { QuillOptions } from "quill";
 import { toast } from "sonner";
 import "quill/dist/quill.snow.css";
+import { MAX_ATTACHMENT_SIZE_BYTES } from "@/lib/uploadImageToSupabase";
 
 const QUILL_SIZE_OPTIONS = ["10px", "12px", "14px", "16px", "18px", "20px", "24px", "30px"] as const;
 
@@ -145,6 +146,12 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
             return;
           }
 
+          if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+            toast.error("이미지는 최대 5MB까지만 첨부할 수 있습니다.");
+            event.target.value = "";
+            return;
+          }
+
           try {
             const imageUrl = await onImageUploadRef.current(file);
             const range = quillRef.current.getSelection(true);
@@ -154,7 +161,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
             quillRef.current.setSelection(insertIndex + 1, 0);
           } catch (error) {
             console.error("Failed to upload image:", error);
-            toast.error("이미지 업로드에 실패했습니다.");
+            toast.error(error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.");
           } finally {
             event.target.value = "";
           }

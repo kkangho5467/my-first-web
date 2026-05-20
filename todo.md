@@ -86,3 +86,20 @@
 - [x] `docs/permission-regression-tests.md` 추가
 - [x] `npm run lint` 재실행 통과(2026-05-04)
 - [x] RPG 대기실(Lobby) 페이지 및 DB 연동
+
+## 7단계. Ch11 RLS 검증 체크리스트 - 90%
+
+- [x] Ch11 제출 형식 마이그레이션 파일 생성: `supabase/migrations/20260520_001_add_posts_rls.sql`
+- [x] `posts` 정책을 Ch11 시나리오로 검증(SELECT 공개, INSERT `WITH CHECK`, UPDATE `USING + WITH CHECK`, DELETE `USING`)
+- [x] 현재 스키마 컬럼(`author_id`)과 교재 표기(`user_id`) 차이 설명 메모 추가
+- [x] 정책 중복 방지 구문(`drop policy if exists`) 포함 여부 재확인
+- [x] 민감 키 노출 점검(`service_role`, `SUPABASE_SERVICE_ROLE`, `sb_secret_`, `sbp_`) - 코드 기준 없음
+- [x] 라우팅/인증 안티패턴 점검(`next/router`, `auth.signIn(`, 소셜 로그인 혼입) - 코드 기준 없음
+- [x] `onAuthStateChange` cleanup(`subscription.unsubscribe()`) 점검 완료
+- [ ] 브라우저 우회 테스트 결과 입력(비로그인 조회/작성, A 작성, B 수정·삭제 실패)
+- [x] `npm run build` 재검증 통과(2026-05-20)
+
+검증 메모:
+
+- [x] `supabase/migrations/20260429_001_posts_comments_hobbies_rls_baseline.sql`에서 posts RLS 확인
+- [x] `supabase/migrations/20260520_001_add_posts_rls.sql` 신규 파일 추가
