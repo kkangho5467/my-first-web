@@ -109,11 +109,13 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         return;
       }
 
+      // 좋아요 총 개수 조회
       const countPromise = supabase
         .from('likes')
         .select('*', { count: 'exact', head: true })
         .eq('post_id', postIdNum);
 
+      // 현재 유저의 좋아요 여부 조회
       const userPromise = user?.id
         ? supabase
             .from('likes')
@@ -125,15 +127,21 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
       const [countRes, userRes] = await Promise.all([countPromise, userPromise]);
 
+      // 좋아요 개수 설정
       if (countRes.error) {
         console.error('좋아요 개수 조회 실패:', countRes.error.message || countRes.error);
       }
-      setLikeCount(countRes.count || 0);
+      const totalCount = countRes.count ?? 0;
+      console.log(`[좋아요 로드] post_id=${postIdNum}, totalCount=${totalCount}`);
+      setLikeCount(totalCount);
 
+      // 유저 좋아요 여부 설정
       if (userRes && userRes.error) {
         console.error('유저 좋아요 조회 실패:', userRes.error.message || userRes.error);
       }
-      setIsLiked(!!(userRes && userRes.data));
+      const userLiked = !!(userRes && userRes.data);
+      console.log(`[좋아요 로드] post_id=${postIdNum}, user_liked=${userLiked}`);
+      setIsLiked(userLiked);
     } catch (err) {
       console.error('좋아요 상태 로드 실패:', err instanceof Error ? err.message : String(err));
     }
@@ -185,8 +193,6 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
           };
 
           setPost(mockPost);
-          setLikeCount((postData.likes as number) || 0);
-
           // 조회수는 부가 기능이므로 실패해도 페이지 렌더링은 계속 진행한다.
           await incrementPostViews(id);
         } else {
@@ -203,12 +209,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     void loadPost();
   }, [id, initialPost, loadLikeState]);
 
-  // 인증이 완료되면(loading=false) 좋아요 상태와 유저별 좋아요 여부를 로드
+  // id 또는 currentUser 변경 시 좋아요 카운트 로드 (인증 상태와 무관하게 항상 표시)
   useEffect(() => {
-    if (!authLoading) {
-      void loadLikeState(id, currentUser);
-    }
-  }, [id, currentUser, authLoading, loadLikeState]);
+    void loadLikeState(id, currentUser);
+  }, [id, currentUser, loadLikeState]);
 
   useEffect(() => {
     let isMounted = true;
@@ -242,12 +246,6 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     if (!currentUser) {
       toast.error('로그인이 필요한 기능입니다.');
       router.push('/auth?notice=login-required');
-      return;
-    }
-
-    // 인증 로딩 중이면 동작 금지
-    if (authLoading) {
-      console.log('Auth loading 중 - 좋아요 동작 중단');
       return;
     }
 
@@ -530,11 +528,11 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
             </Button>
           ) : (
             <div className="text-center">
-              <p className="text-sm font-medium text-slate-600">좋아요 {likeCount}</p>
+              <p className="text-sm font-medium text-slate-400">좋아요 {likeCount}</p>
               <button
                 type="button"
                 onClick={() => router.push("/auth?notice=login-required")}
-                className="mt-1 text-xs text-slate-500 underline underline-offset-2 hover:text-slate-700"
+                className="mt-1 text-xs text-slate-400 underline underline-offset-2 hover:text-slate-300"
               >
                 로그인 후 좋아요를 누를 수 있습니다
               </button>
