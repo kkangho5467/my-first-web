@@ -67,15 +67,28 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
             [{ list: "ordered" }, { list: "bullet" }],
           ],
         },
+        formats: ["size", "bold", "italic", "underline", "align", "link", "image", "list"],
       };
 
       const editor = new Quill(editorElement, editorOptions);
 
-      const toolbar = editor.getModule("toolbar") as { addHandler: (name: string, handler: () => void) => void } | null;
+      const toolbar = editor.getModule("toolbar") as { addHandler: (name: string, handler: (...args: any[]) => void) => void } | null;
       if (toolbar) {
         // 이미지 버튼 클릭 시 숨김 input을 열어 업로드 흐름으로 연결한다.
         toolbar.addHandler("image", () => {
           fileInputRef.current?.click();
+        });
+
+        // 글꼴 크기 선택기가 선택한 값을 에디터에 적용하도록 핸들러 추가
+        toolbar.addHandler("size", (value: string) => {
+          const range = editor.getSelection(true);
+          if (range) {
+            editor.format("size", value);
+            // 변경을 상위 컴포넌트에 알림
+            onChangeRef.current(editor.root.innerHTML);
+            // 포커스 유지
+            editor.setSelection(range.index + range.length, 0);
+          }
         });
       }
 
