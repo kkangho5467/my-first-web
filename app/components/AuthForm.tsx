@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { toFriendlyErrorMessage, toSafeErrorMessage } from "@/lib/error-message";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -26,47 +27,7 @@ export default function AuthForm() {
     return `${rawUsername.trim()}@myboard.local.com`;
   }
 
-  function toFriendlyErrorMessage(message: string): string {
-    const normalized = message.toLowerCase();
-
-    if (normalized.includes("unable to validate email address") && normalized.includes("invalid format")) {
-      return "이메일 형식이 올바르지 않습니다.";
-    }
-
-    if (normalized.includes("invalid login credentials")) {
-      return "이메일 또는 비밀번호가 올바르지 않습니다.";
-    }
-
-    if (normalized.includes("user already registered")) {
-      return "이미 가입된 이메일입니다. 로그인해 주세요.";
-    }
-
-    if (normalized.includes("password should be at least")) {
-      return "비밀번호는 최소 6자 이상이어야 합니다.";
-    }
-
-    if (normalized.includes("email rate limit exceeded") || normalized.includes("rate limit")) {
-      return "요청이 너무 많아 잠시 제한되었습니다. 잠시 후 다시 시도하거나 로그인 버튼을 눌러 주세요.";
-    }
-
-    if (normalized.includes("email not confirmed")) {
-      return "이메일 인증이 완료되지 않았습니다. 인증 메일을 확인해 주세요.";
-    }
-
-    if (normalized.includes("network") || normalized.includes("fetch")) {
-      return "네트워크 오류가 발생했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.";
-    }
-
-    return `인증 중 오류가 발생했습니다: ${message}`;
-  }
-
-  function toSafeErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return toFriendlyErrorMessage(error.message);
-    }
-
-    return "인증 중 알 수 없는 오류가 발생했습니다.";
-  }
+  // Use shared error-message helpers in /lib for consistent UX
 
   async function handleSignUp() {
     setErrorMessage("");

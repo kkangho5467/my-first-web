@@ -66,17 +66,24 @@
 - [x] `hobbies` 테이블 DDL 기준선 문서화(마이그레이션 명시)
 - [x] 권한 회귀 테스트 시나리오 문서 추가
 
-## 6단계. 최종 제출 전 점검 - 90%
+## 6단계. 최종 제출 전 점검 - 95%
 
-- [x] 빌드 확인 (`npm run build`)
+- [ ] 빌드 확인 (`npm run build`)  // 권장: 로컬에서 실행하여 TypeScript/빌드 에러 확인
 - [x] 린트 재확인 (`npm run lint`)
 - [ ] 제출물 8개 항목 스크린샷/증빙 체크
 - [x] 문서 간 용어 통일(경로명, 테이블명, 권한 용어: `admin role claim`)
 
+추가 반영(2026-05-27): Ch12 구현 완료(코드 레벨)
+- [x] `app/error.tsx` 추가
+- [x] `app/posts/loading.tsx`, `app/posts/[id]/loading.tsx` 추가
+- [x] `lib/error-message.ts` 추가 및 `AuthForm` 리팩터
+- [x] 게시글 작성 폼 유효성 적용 (`app/community/write/page.tsx`)
+
 ## 즉시 다음 액션 (우선순위)
 
+- [ ] `npm run build` 실행 및 빌드 에러 확인
 - [ ] 제출물 8개 항목 스크린샷/증빙 체크
-- [ ] 권한 회귀 테스트 시나리오 실행 결과(성공/실패) 채우기
+- [ ] 권한 회귀 테스트 시나리오 실행 결과(비로그인 조회/작성, A 작성, B 수정·삭제 실패) 채우기
 - [ ] 관리자 판별 클라이언트 분기 제거 계획 수립(`admin role claim` 완전 이관)
 
 완료 메모:

@@ -309,6 +309,28 @@ RPC (`toggle_hobby_like`)
 4. CRUD 피드백을 alert 중심에서 toast 중심으로 통합
 5. 문서(`context.md`, `todo.md`)와 코드 상태를 주기적으로 동기화
 
+## 14. Ch12 에러/UX 반영 요약
+
+- 목적: 로딩/빈 상태/에러 UI를 정비하고, 폼 제출 전 유효성으로 불필요한 서버 에러를 줄여 UX를 개선
+- 코드 반영 요약:
+  - `app/error.tsx`: 앱 전체 에러 안전망(클라이언트 컴포넌트, `reset()` 지원)
+  - `app/loading.tsx`: 앱 전체 로딩(기존)
+  - `app/posts/loading.tsx`: 게시글 목록 전용 로딩 스켈레톤
+  - `app/posts/[id]/loading.tsx`: 게시글 상세 전용 로딩 스켈레톤
+  - `lib/error-message.ts`: Supabase/네트워크 에러 → 사용자 친화 메시지 변환 유틸
+  - `app/components/AuthForm.tsx`: `lib/error-message.ts` 사용으로 에러 메시지 일관성 확보
+  - `app/community/write/page.tsx`: 클라이언트 유효성(제목 ≥2자, 본문 텍스트 ≥10자), 필드별 에러 렌더
+
+- UX 원칙 적용 포인트:
+  - 로딩 스켈레톤은 실제 레이아웃 위치와 유사하게 배치해 레이아웃 점프를 최소화
+  - 사용자 메시지와 개발자 로그 분리: 사용자에게는 친절한 문장, 원인은 console.error로 남김
+  - 폼 유효성은 UX 장치로 사용하고 실제 권한/무결성 검사는 RLS/서버에서 보장
+
+## 권고 사항
+
+- `lib/error-message.ts`에 Supabase 에러 코드(예: 42501)와 네트워크 코드 매핑을 확장해 더 많은 케이스를 커버하길 권장
+- 변경사항 적용 후 `npm run build` 및 브라우저 수동 검증(로딩/빈 상태/에러/폼 에러 시나리오)을 권장
+
 ## 13. 문서 단일 기준 (Source of Truth)
 
 - 설계 기준: `ARCHITECTURE.md`

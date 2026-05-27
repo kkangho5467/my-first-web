@@ -3,7 +3,7 @@
 ## 기준 정보
 
 - 워크스페이스: c:\my-first-web
-- 최신 갱신일: 2026-05-04
+-- 최신 갱신일: 2026-05-27
 - 프레임워크: Next.js 16.2.1 (App Router)
 - 런타임: React 19.2.4
 - 스타일: Tailwind CSS v4 + shadcn/ui
@@ -66,11 +66,21 @@
 - 코드베이스의 `alert/confirm` 호출을 toast + toast confirm 헬퍼(`confirmWithToast`)로 일원화.
 - 권한 회귀 테스트 문서 `docs/permission-regression-tests.md` 추가.
 - 2026-05-04 최종 린트 재실행 결과: `npm run lint` 통과(오류 0건).
+- 2026-05-27 Ch12 작업 반영: 에러/로딩 UX 및 폼 검증 추가
+	- 추가된 파일: `app/error.tsx`, `app/posts/loading.tsx`, `app/posts/[id]/loading.tsx`, `lib/error-message.ts`
+	- `app/components/AuthForm.tsx`가 `lib/error-message.ts`를 사용하도록 리팩터됨(로그는 콘솔 유지, 사용자용 메시지 변환 유틸 적용)
+	- 게시글 작성 폼(`app/community/write/page.tsx`)에 클라이언트 유효성 검증 적용: 제목 최소 2자, 본문(텍스트 기준) 최소 10자, 필드별 에러 표시, 제출 중 중복 방지
+	- 로딩/빈 상태/에러 화면을 각 라우트에서 처리하도록 스켈레톤과 에러 UI 추가
 
 ## 남은 리스크
 
 - 일부 화면은 관리자 판별을 클라이언트 분기에도 의존하고 있어 `admin role claim` 기반 정책 함수 연동을 추가 정리해야 함.
 - 제출물 8개 항목 스크린샷/증빙 수집은 수동 점검이 필요함.
+
+## 이번 반영 관련 메모
+
+- Ch12 항목(로딩·에러·폼검증)은 코드 레벨에서 적용을 완료했으나, 빌드/브라우저 동작 검증(`npm run build`, 수동 브라우저 확인)은 아직 수행 필요.
+- `lib/error-message.ts`는 현재 기본 매핑(네트워크, not found, 권한)만 포함. Supabase 특정 에러 코드(예: 42501 등)를 더 세밀하게 매핑할 수 있음.
 
 ## 문서 기준 계약
 

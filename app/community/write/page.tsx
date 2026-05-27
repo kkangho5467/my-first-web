@@ -28,6 +28,8 @@ export default function CommunityWritePage() {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [contentError, setContentError] = useState<string | null>(null);
 
   function isAdminByUserId(userId: string | undefined, email?: string | null) {
     if (!userId && !email) {
@@ -138,7 +140,21 @@ export default function CommunityWritePage() {
     return match ? match[1] : null;
   }
 
+  function plainTextFromHtml(html: string) {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      return doc.body.textContent || "";
+    } catch (e) {
+      // fallback: remove tags
+      return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    }
+  }
+
   async function handleSubmit() {
+    setTitleError(null);
+    setContentError(null);
+
     const session = await getSafeSession();
     if (!session?.user) {
       router.push("/auth?notice=login-required");
@@ -148,28 +164,28 @@ export default function CommunityWritePage() {
     const currentEditingPostId = editingPostId ?? "";
 
     const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
+    const plain = plainTextFromHtml(content || "").trim();
 
-    if (!trimmedTitle) {
-      toast.error("제목을 입력해주세요.");
+    if (trimmedTitle.length < 2) {
+      setTitleError("제목은 최소 2자 이상이어야 합니다.");
       return;
     }
 
-    if (!trimmedContent) {
-      toast.error("본문을 입력해주세요.");
+    if (plain.length < 10) {
+      setContentError("본문은 최소 10자 이상이어야 합니다.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const thumbnailUrl = extractThumbnailUrl(trimmedContent);
+      const thumbnailUrl = extractThumbnailUrl(content);
 
       if (isEditMode && currentEditingPostId) {
-        await updatePostInSupabase(currentEditingPostId, trimmedTitle, trimmedContent, category, thumbnailUrl);
+        await updatePostInSupabase(currentEditingPostId, trimmedTitle, content, category, thumbnailUrl);
         toast.success("글이 수정되었습니다.");
         router.push(`/posts/${currentEditingPostId}`);
       } else {
-        await createPostInSupabase(trimmedTitle, trimmedContent, category, thumbnailUrl);
+        await createPostInSupabase(trimmedTitle, content, category, thumbnailUrl);
         toast.success("글이 등록되었습니다.");
         router.push("/posts");
       }
@@ -234,6 +250,7 @@ export default function CommunityWritePage() {
               placeholder="제목을 입력하세요"
               className="h-14 w-full px-4 text-lg"
             />
+            {titleError ? <p className="mt-1 text-sm text-red-600">{titleError}</p> : null}
           </div>
 
           <div className="space-y-2">
@@ -261,7 +278,7 @@ export default function CommunityWritePage() {
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting}
           >
             {isSubmitting ? submitPendingLabel : submitLabel}
           </Button>
