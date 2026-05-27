@@ -72,20 +72,21 @@ export async function fetchPostByIdAndIncrementViews(postId: string): Promise<Po
       .single();
 
     if (fetchError) {
+      // 조회수 컬럼이 없거나 권한 문제 등으로 실패할 수 있음.
+      // 조회수 증가를 포기하더라도 게시글 자체는 로드해야 하므로 폴백을 적용한다.
       console.warn("Failed to fetch post for view increment:", fetchError);
-      return null;
-    }
+    } else {
+      if (post) {
+        const currentViews = (post.views as number) || 0;
+        const { error: updateError } = await supabase
+          .from("posts")
+          .update({ views: currentViews + 1 })
+          .eq("id", postId);
 
-    if (post) {
-      const currentViews = (post.views as number) || 0;
-      const { error: updateError } = await supabase
-        .from("posts")
-        .update({ views: currentViews + 1 })
-        .eq("id", postId);
-
-      if (updateError) {
-        console.warn("Failed to increment views:", updateError);
-        // 조회수 증가 실패해도 게시글은 로드하기
+        if (updateError) {
+          console.warn("Failed to increment views:", updateError);
+          // 조회수 증가 실패해도 게시글은 로드하기
+        }
       }
     }
 
