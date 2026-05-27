@@ -58,7 +58,6 @@ function formatKoreaDateTime(raw: string): string {
 export default function PostDetailClient({ id, initialPost }: PostDetailClientProps) {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [post, setPost] = useState<MockPost | null>(initialPost);
   const [isLoadingPost, setIsLoadingPost] = useState(!initialPost);
   const [comments, setComments] = useState<PostComment[]>([]);
@@ -79,7 +78,6 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
       if (isMounted) {
         setCurrentUser(user);
-        setAuthLoading(false);
       }
     }
 
@@ -91,7 +89,6 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       // 인증 상태 변경을 즉시 반영해 댓글/수정/삭제 권한 UI를 맞춘다.
       if (isMounted) {
         setCurrentUser(session?.user ?? null);
-        setAuthLoading(false);
       }
     });
 
@@ -211,7 +208,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
   // id 또는 currentUser 변경 시 좋아요 카운트 로드 (인증 상태와 무관하게 항상 표시)
   useEffect(() => {
-    void loadLikeState(id, currentUser);
+    // Call in microtask to avoid synchronous setState inside effect body.
+    queueMicrotask(() => {
+      void loadLikeState(id, currentUser);
+    });
   }, [id, currentUser, loadLikeState]);
 
   useEffect(() => {

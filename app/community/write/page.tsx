@@ -145,7 +145,7 @@ export default function CommunityWritePage() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
       return doc.body.textContent || "";
-    } catch (e) {
+    } catch {
       // fallback: remove tags
       return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
     }
@@ -263,6 +263,7 @@ export default function CommunityWritePage() {
                 onImageUpload={uploadImageToSupabase}
               />
             </div>
+            {contentError ? <p className="mt-1 text-sm text-red-600">{contentError}</p> : null}
           </div>
         </div>
 

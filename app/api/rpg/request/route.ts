@@ -47,7 +47,7 @@ function createSupabaseServerClient(request: NextRequest) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable.");
   }
 
-  const cookiesToSet: Array<{ name: string; value: string; options: any }> = [];
+  const cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }> = [];
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {

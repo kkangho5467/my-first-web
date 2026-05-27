@@ -21,6 +21,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const onChangeRef = useRef(onChange);
   const onImageUploadRef = useRef(onImageUpload);
+  const initialHtmlRef = useRef(value.trim());
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -78,7 +79,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
         });
       }
 
-      const initialHtml = value.trim();
+      const initialHtml = initialHtmlRef.current;
       if (initialHtml) {
         editor.clipboard.dangerouslyPasteHTML(initialHtml, "silent");
       }

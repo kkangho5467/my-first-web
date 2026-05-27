@@ -28,7 +28,7 @@ export function toFriendlyErrorMessage(raw: unknown): string {
 export function toSafeErrorMessage(error: unknown): string {
   try {
     return toFriendlyErrorMessage(error);
-  } catch (e) {
+  } catch {
     return "요청을 처리하는 중 오류가 발생했습니다.";
   }
 }
