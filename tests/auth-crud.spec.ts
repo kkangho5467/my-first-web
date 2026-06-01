@@ -39,16 +39,17 @@ test.describe('Auth + CRUD flows', () => {
 
     await page.getByRole('button', { name: /등록하기|저장|작성/ }).click();
 
-    // 글 작성 버튼 누른 후, 리다이렉트 대기
-    await page.waitForURL(/.*\/posts.*/, { timeout: 10000 });
+    // 💡 [수정] 정규식 함정 해결: 현재 위치한 '/posts/new' 주소를 확실하게 '벗어날 때'까지 대기합니다.
+    // 서버가 글을 성공적으로 저장하고 리다이렉트 시킬 때까지 네트워크 요청을 끊지 않고 온전하게 기다려줍니다.
+    await page.waitForURL(url => url.pathname !== '/posts/new' && url.pathname.includes('/posts'), { timeout: 10000 });
 
     // 3) /posts 목록에서 새 글 제목 확인
     await page.goto('/posts');
 
-    // 💡 [새로고침 추가] 페이지 이동 직후 혹시 모를 캐시나 데이터 갱신 지연을 깨우기 위해 강제 새로고침을 수행합니다.
+    // 페이지 이동 직후 혹시 모를 캐시나 데이터 갱신 지연을 깨우기 위해 강제 새로고침을 수행합니다.
     await page.reload();
 
-    // 💡 [매칭 방식 변경] getByRole('link') 대신 화면 어디든 해당 제목 텍스트가 존재하는지 검증하여 훨씬 유연하게 잡아냅니다.
+    // 화면 어디든 해당 제목 텍스트가 존재하는지 검증하여 훨씬 유연하게 잡아냅니다.
     await expect(page.getByText(title)).toBeVisible({ timeout: 15000 });
   });
 
