@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const TEST_EMAIL = process.env.TEST_EMAIL;
 const TEST_PASSWORD = process.env.TEST_PASSWORD;
 
@@ -12,7 +11,7 @@ test.describe('Auth + CRUD flows', () => {
     const content = 'This is a test post created by Playwright.';
 
     // 1) /login에서 로그인 — App에서 /auth 라우트를 사용하는 경우가 있어 /login 대신 /auth로 이동
-    await page.goto(`${BASE}/auth`);
+    await page.goto('/auth');
 
     // 입력 필드: 레이블 우선 사용
     await page.getByLabel('아이디').fill(TEST_EMAIL);
@@ -23,7 +22,7 @@ test.describe('Auth + CRUD flows', () => {
     await page.waitForLoadState('networkidle');
 
     // 2) /posts/new에서 제목/내용 입력 후 저장
-    await page.goto(`${BASE}/posts/new`);
+    await page.goto('/posts/new');
 
     await page.getByLabel('제목').fill(title);
 
@@ -35,7 +34,7 @@ test.describe('Auth + CRUD flows', () => {
     await page.getByRole('button', { name: /등록하기|저장|작성/ }).click();
 
     // 3) /posts 목록에서 새 글 제목 확인
-    await page.goto(`${BASE}/posts`);
+    await page.goto('/posts');
 
     // 제목이 링크 또는 텍스트로 렌더될 것을 기대
     await expect(page.getByRole('link', { name: title })).toBeVisible();
@@ -45,7 +44,7 @@ test.describe('Auth + CRUD flows', () => {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    await page.goto(`${BASE}/posts/new`);
+    await page.goto('/posts/new');
 
     // 인증이 필요한 경우 /auth 또는 /login으로 리다이렉트되는지 확인
     await page.waitForLoadState('networkidle');
