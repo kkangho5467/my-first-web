@@ -13,17 +13,24 @@ test.describe('Auth + CRUD flows', () => {
     // 1) /auth 로 이동해서 로그인
     await page.goto('/auth');
 
-    // 💡 [수정됨] 하드코딩된 아이디/비번 대신 GitHub Secrets에서 가져온 변수 사용
     await page.getByLabel('아이디').fill(TEST_EMAIL as string);
     await page.getByLabel('비밀번호').fill(TEST_PASSWORD as string);
     await page.getByRole('button', { name: /로그인/i }).click();
 
-    // 💡 [수정됨] networkidle 대기 삭제 -> URL이 /auth에서 다른 곳으로 넘어갈 때까지 대기
+    // 로그인 페이지를 벗어날 때까지 대기
     await page.waitForURL(url => !url.href.includes('/auth'), { timeout: 10000 });
+
+    // 💡 [안정성 추가] Supabase 인증 세션/쿠키가 브라우저에 완전히 구워질 수 있도록 2초간 대기합니다.
+    await page.waitForTimeout(2000);
 
     // 2) /posts/new에서 제목/내용 입력 후 저장
     await page.goto('/posts/new');
 
+    // 💡 [안전장치 추가] 혹시라도 로그인 쿠키가 안 먹혀서 /auth로 튕겨 나갔는지 검증합니다.
+    // 만약 여기서 터지면 100% 인증(쿠키/세션) 누락 문제입니다.
+    await page.waitForURL(/.*\/posts\/new.*/, { timeout: 5000 });
+
+    // 이제 안심하고 제목 입력칸을 찾습니다.
     await page.getByLabel('제목').fill(title);
 
     // Quill 에디터는 contenteditable 요소(.ql-editor)
@@ -33,13 +40,13 @@ test.describe('Auth + CRUD flows', () => {
 
     await page.getByRole('button', { name: /등록하기|저장|작성/ }).click();
 
-    // 💡 [수정됨] 글 작성 버튼 누른 후, 서버 통신을 기다려주기 위해 대기
+    // 글 작성 버튼 누른 후, 리다이렉트 대기
     await page.waitForURL(/.*\/posts.*/, { timeout: 10000 });
 
     // 3) /posts 목록에서 새 글 제목 확인
     await page.goto('/posts');
 
-    // 💡 [수정됨] 깃허브 컴퓨터가 느릴 수 있으므로 최대 15초 동안 넉넉하게 기다려줌
+    // 깃허브 컴퓨터가 느릴 수 있으므로 최대 15초 동안 넉넉하게 기다려줌
     await expect(page.getByRole('link', { name: title })).toBeVisible({ timeout: 15000 });
   });
 
@@ -49,7 +56,7 @@ test.describe('Auth + CRUD flows', () => {
 
     await page.goto('/posts/new');
 
-    // 💡 [수정됨] networkidle 대기 삭제 -> 명시적으로 auth나 login 주소로 튕겨날 때까지 대기
+    // networkidle 대기 삭제 -> 명시적으로 auth나 login 주소로 튕겨날 때까지 대기
     await page.waitForURL(/.*(auth|login).*/, { timeout: 10000 });
     
     const url = page.url();
