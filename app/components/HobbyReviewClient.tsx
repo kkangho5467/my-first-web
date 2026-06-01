@@ -146,7 +146,7 @@ export default function HobbyReviewClient() {
   }, []);
 
   const redirectToAuthWithNotice = () => {
-    router.push('/auth?notice=login-required');
+    router.push('/login?notice=login-required');
   };
 
   const handleLike = async (id: string) => {

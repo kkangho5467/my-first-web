@@ -55,7 +55,7 @@ export default function MyProfile() {
 
       if (userError || !userData.user) {
         clearUser();
-        router.replace("/auth?notice=login-required");
+        router.replace("/login?notice=login-required");
         setIsLoadingProfile(false);
         return;
       }

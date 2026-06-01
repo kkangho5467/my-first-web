@@ -5,6 +5,7 @@ import { showGlobalToast } from "@/lib/toast";
 import type { User } from "@supabase/supabase-js";
 
 export type PostComment = {
+  id: string;
   postId: string;
   content: string;
   createdAt: string;
@@ -13,6 +14,7 @@ export type PostComment = {
 };
 
 type CommentRow = {
+  id: string;
   post_id: string;
   content: string;
   created_at: string;
@@ -23,6 +25,7 @@ type CommentRow = {
 function mapRowToComment(row: CommentRow): PostComment {
   // DB 컬럼명을 화면에서 사용하는 댓글 타입으로 변환한다.
   return {
+    id: row.id,
     postId: row.post_id,
     content: row.content,
     createdAt: row.created_at,
@@ -34,7 +37,7 @@ function mapRowToComment(row: CommentRow): PostComment {
 export async function fetchCommentsByPostId(postId: string): Promise<PostComment[]> {
   const { data, error } = await supabase
     .from("comments")
-    .select("post_id, content, created_at, author_name, author_id")
+    .select("id, post_id, content, created_at, author_name, author_id")
     .eq("post_id", postId)
     .order("created_at", { ascending: false });
 
@@ -70,9 +73,7 @@ export async function insertComment(postId: string, content: string, user: User 
 }
 
 export async function deleteMyComment(
-  postId: string,
-  content: string,
-  createdAt: string,
+  commentId: string,
   authorId: string,
   currentUser: User | null
 ): Promise<void> {
@@ -91,9 +92,7 @@ export async function deleteMyComment(
   const { error } = await supabase
     .from("comments")
     .delete()
-    .eq("post_id", postId)
-    .eq("content", content)
-    .eq("created_at", createdAt);
+    .eq("id", commentId);
 
   if (error) {
     console.error("Failed to delete comment:", error);

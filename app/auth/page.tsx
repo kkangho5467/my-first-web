@@ -1,10 +1,5 @@
-import MainLayout from "@/app/components/MainLayout";
-import AuthForm from "@/app/components/AuthForm";
+import { redirect } from "next/navigation";
 
 export default function AuthPage() {
-  return (
-    <MainLayout>
-      <AuthForm />
-    </MainLayout>
-  );
+  redirect("/login");
 }

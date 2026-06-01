@@ -52,7 +52,7 @@ export default function CommunityWritePage() {
       }
 
       if (!session?.user) {
-        router.push("/auth?notice=login-required");
+        router.push("/login?notice=login-required");
       }
     }
 
@@ -79,7 +79,7 @@ export default function CommunityWritePage() {
         const session = await getSafeSession();
 
         if (!session?.user) {
-          router.push("/auth?notice=login-required");
+          router.push("/login?notice=login-required");
           return;
         }
 
@@ -157,7 +157,7 @@ export default function CommunityWritePage() {
 
     const session = await getSafeSession();
     if (!session?.user) {
-      router.push("/auth?notice=login-required");
+      router.push("/login?notice=login-required");
       return;
     }
 

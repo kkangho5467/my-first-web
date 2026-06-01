@@ -14,8 +14,8 @@ test.describe('Auth + CRUD flows', () => {
     await page.goto('/auth');
 
     // 입력 필드: 레이블 우선 사용
-    await page.getByLabel('아이디').fill(TEST_EMAIL);
-    await page.getByLabel('비밀번호').fill(TEST_PASSWORD);
+    await page.getByLabel('아이디').fill('kkangho5467');
+    await page.getByLabel('비밀번호').fill('rkdgh1234@');
     await page.getByRole('button', { name: /로그인/i }).click();
 
     // 로그인 후 리다이렉트/상태 반영 대기

@@ -72,7 +72,7 @@ export default function RpgRequestBoard({ tasks, currentHp, isAuthenticated }: R
 
   async function handleRequest(task: TaskRow) {
     if (!isAuthenticated) {
-      router.push("/auth?notice=login-required");
+      router.push("/login?notice=login-required");
       return;
     }
 
@@ -103,7 +103,7 @@ export default function RpgRequestBoard({ tasks, currentHp, isAuthenticated }: R
 
       if (!response.ok) {
         if (response.status === 401) {
-          router.push("/auth?notice=login-required");
+          router.push("/login?notice=login-required");
           return;
         }
 

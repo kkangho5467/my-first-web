@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const PROTECTED_PATHS = ['/posts/new', '/community/write', '/mypage'];
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -27,7 +29,14 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+
+  const isProtectedPath = PROTECTED_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
+  if (isProtectedPath && !data.user) {
+    const redirectUrl = new URL('/login', request.url);
+    redirectUrl.searchParams.set('notice', 'login-required');
+    return NextResponse.redirect(redirectUrl);
+  }
 
   return response;
 }

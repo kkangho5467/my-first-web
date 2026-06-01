@@ -2,16 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { toFriendlyErrorMessage, toSafeErrorMessage } from "@/lib/error-message";
+import { signInWithPassword, signUp } from "@/lib/auth";
 
-export default function AuthForm() {
+type AuthFormProps = {
+  initialMode?: "login" | "signup";
+  showModeSwitch?: boolean;
+};
+
+export default function AuthForm({ initialMode = "login", showModeSwitch = true }: AuthFormProps) {
   const router = useRouter();
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isLoginMode, setIsLoginMode] = useState(initialMode === "login");
   const [username, setUsername] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
@@ -21,13 +26,6 @@ export default function AuthForm() {
   function normalizeUsername(rawUsername: string): string {
     return rawUsername.trim();
   }
-
-  function buildPseudoEmail(rawUsername: string): string {
-    // Supabase 이메일 인증 API를 아이디 기반 로그인처럼 쓰기 위한 내부 변환값.
-    return `${rawUsername.trim()}@myboard.local.com`;
-  }
-
-  // Use shared error-message helpers in /lib for consistent UX
 
   async function handleSignUp() {
     setErrorMessage("");
@@ -56,14 +54,12 @@ export default function AuthForm() {
       return;
     }
 
-    const pseudoEmail = buildPseudoEmail(normalizedUsername);
-
     setIsSubmitting(true);
 
     try {
       // 이미 계정이 있으면 회원가입 대신 즉시 로그인 처리한다.
-      const { error: existingSignInError } = await supabase.auth.signInWithPassword({
-        email: pseudoEmail,
+      const { error: existingSignInError } = await signInWithPassword({
+        username: normalizedUsername,
         password: trimmedPassword,
       });
 
@@ -79,14 +75,10 @@ export default function AuthForm() {
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
-        email: pseudoEmail,
+      const { error } = await signUp({
+        username: normalizedUsername,
+        nickname: normalizedNickname,
         password: trimmedPassword,
-        options: {
-          data: {
-            nickname: normalizedNickname,
-          },
-        },
       });
 
       if (error) {
@@ -108,8 +100,6 @@ export default function AuthForm() {
     setErrorMessage("");
 
     const normalizedUsername = normalizeUsername(username);
-    const pseudoEmail = buildPseudoEmail(normalizedUsername);
-
     if (!normalizedUsername || !password.trim()) {
       setErrorMessage("아이디와 비밀번호를 모두 입력해 주세요.");
       return;
@@ -118,8 +108,8 @@ export default function AuthForm() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: pseudoEmail,
+      const { error } = await signInWithPassword({
+        username: normalizedUsername,
         password: password.trim(),
       });
 
@@ -230,31 +220,33 @@ export default function AuthForm() {
           )}
         </div>
 
-        <div className="pt-1 text-center text-xs text-slate-500">
-          {isLoginMode ? (
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => {
-                setIsLoginMode(false);
-                setErrorMessage("");
-              }}
-            >
-              아직 계정이 없으신가요? 회원가입
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => {
-                setIsLoginMode(true);
-                setErrorMessage("");
-              }}
-            >
-              이미 계정이 있으신가요? 로그인
-            </Button>
-          )}
-        </div>
+        {showModeSwitch ? (
+          <div className="pt-1 text-center text-xs text-slate-500">
+            {isLoginMode ? (
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => {
+                  setIsLoginMode(false);
+                  setErrorMessage("");
+                }}
+              >
+                아직 계정이 없으신가요? 회원가입
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => {
+                  setIsLoginMode(true);
+                  setErrorMessage("");
+                }}
+              >
+                이미 계정이 있으신가요? 로그인
+              </Button>
+            )}
+          </div>
+        ) : null}
       </form>
       </CardContent>
     </Card>

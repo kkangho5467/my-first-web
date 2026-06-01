@@ -222,7 +222,7 @@ export default function DailyPostBoard() {
   async function handleClickWriteButton() {
     const session = await getSafeSession();
     if (!session?.user) {
-      router.push("/auth?notice=login-required");
+      router.push("/login?notice=login-required");
       return;
     }
 

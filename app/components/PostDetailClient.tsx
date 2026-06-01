@@ -244,7 +244,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     // 로그인 상태 확인
     if (!currentUser) {
       toast.error('로그인이 필요한 기능입니다.');
-      router.push('/auth?notice=login-required');
+      router.push('/login?notice=login-required');
       return;
     }
 
@@ -319,7 +319,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     event.preventDefault();
 
     if (!currentUser) {
-      router.push("/auth?notice=login-required");
+      router.push("/login?notice=login-required");
       return;
     }
 
@@ -355,7 +355,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    await deleteMyComment(comment.postId, comment.content, comment.createdAt, comment.authorId, currentUser);
+    await deleteMyComment(comment.id, comment.authorId, currentUser);
     await refetchComments();
   }
 
@@ -529,7 +529,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
               <p className="text-sm font-medium text-slate-400">좋아요 {likeCount}</p>
               <button
                 type="button"
-                onClick={() => router.push("/auth?notice=login-required")}
+                onClick={() => router.push("/login?notice=login-required")}
                 className="mt-1 text-xs text-slate-400 underline underline-offset-2 hover:text-slate-300"
               >
                 로그인 후 좋아요를 누를 수 있습니다
