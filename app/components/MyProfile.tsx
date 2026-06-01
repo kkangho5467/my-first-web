@@ -35,6 +35,7 @@ export default function MyProfile() {
   const email = useUserStore((state) => state.email);
   const nickname = useUserStore((state) => state.nickname);
   const avatarUrl = useUserStore((state) => state.avatarUrl);
+  const isAuthReady = useUserStore((state) => state.isAuthReady);
   const setEmail = useUserStore((state) => state.setEmail);
   const setNickname = useUserStore((state) => state.setNickname);
   const setAvatarUrl = useUserStore((state) => state.setAvatarUrl);
@@ -50,6 +51,10 @@ export default function MyProfile() {
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (!isMounted) {
+        return;
+      }
+
+      if (!isAuthReady) {
         return;
       }
 
@@ -100,7 +105,7 @@ export default function MyProfile() {
     return () => {
       isMounted = false;
     };
-  }, [clearUser, router, setAvatarUrl, setEmail, setNickname]);
+  }, [clearUser, isAuthReady, router, setAvatarUrl, setEmail, setNickname]);
 
   useEffect(() => {
     return () => {

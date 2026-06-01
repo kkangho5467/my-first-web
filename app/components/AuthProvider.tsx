@@ -28,6 +28,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const setEmail = useUserStore((state) => state.setEmail);
   const setNickname = useUserStore((state) => state.setNickname);
   const setAvatarUrl = useUserStore((state) => state.setAvatarUrl);
+  const setAuthReady = useUserStore((state) => state.setAuthReady);
   const clearUser = useUserStore((state) => state.clearUser);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
       if (!session?.user) {
         clearUser();
+        setAuthReady(true);
         return;
       }
 
@@ -53,6 +55,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       if (isMounted) {
         setNickname(profile?.nickname || getUsernameFromEmail(session.user.email) || "");
         setAvatarUrl(profile?.avatar_url || "");
+        setAuthReady(true);
       }
     }
 
@@ -63,6 +66,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session?.user) {
         clearUser();
+        setAuthReady(true);
         return;
       }
 
@@ -76,6 +80,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
         setNickname(profile?.nickname || getUsernameFromEmail(session.user.email) || "");
         setAvatarUrl(profile?.avatar_url || "");
+        setAuthReady(true);
       });
     });
 

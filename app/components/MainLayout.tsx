@@ -3,10 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { MouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
-import { supabase } from "@/lib/supabaseClient";
 import AuthStatusControl from "./AuthStatusControl";
 import FooterEmailLink from "./FooterEmailLink";
 import ThemeToggle from "./ThemeToggle";
@@ -95,36 +94,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
     };
   }, [runtimeToast]);
 
-  const handleMenuLinkClick = async (
-    event: MouseEvent<HTMLAnchorElement>,
-    href: string,
-    onAfterNavigate?: () => void
-  ) => {
-    // 마이페이지는 로그인 사용자만 허용하고, 비로그인은 인증 페이지로 안내한다.
-    if (href !== "/mypage") {
-      onAfterNavigate?.();
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error || !data.session?.user) {
-        event.preventDefault();
-        onAfterNavigate?.();
-        router.push("/login?notice=login-required");
-        return;
-      }
-    } catch {
-      // 비로그인/세션 없음은 정상 흐름으로 처리
-      event.preventDefault();
-      onAfterNavigate?.();
-      router.push("/login?notice=login-required");
-      return;
-    }
-
-    onAfterNavigate?.();
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Toaster position="top-center" richColors closeButton />
@@ -159,9 +128,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <Link
                       href={item.href}
                       prefetch
-                      onClick={(event) => {
-                        void handleMenuLinkClick(event, item.href);
-                      }}
                       aria-current={isActiveMenu(item.href) ? "page" : undefined}
                       className={`nav-menu-link rounded px-2 py-1 hover:text-slate-900 ${
                         isActiveMenu(item.href) ? "bg-slate-100 text-slate-900" : ""
@@ -202,9 +168,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       href={item.href}
                       prefetch
                       aria-current={isActiveMenu(item.href) ? "page" : undefined}
-                      onClick={(event) => {
-                        void handleMenuLinkClick(event, item.href, closeMenu);
-                      }}
+                      onClick={closeMenu}
                       className={`mobile-menu-link block rounded px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 ${
                         isActiveMenu(item.href) ? "bg-slate-100 text-slate-900" : ""
                       }`}
