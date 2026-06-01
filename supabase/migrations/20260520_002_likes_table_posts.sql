@@ -1,10 +1,9 @@
 -- Chapter 11: posts likes table and RLS baseline
 -- Note: likes table provides many-to-many relationship between posts and users for like functionality.
--- posts.id is bigint, user.id is uuid.
-
+-- posts.id is uuid, user.id is uuid.
 create table if not exists public.likes (
   id uuid primary key default gen_random_uuid(),
-  post_id bigint not null references public.posts(id) on delete cascade,
+  post_id uuid not null references public.posts(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   constraint likes_unique_user_post unique(post_id, user_id)

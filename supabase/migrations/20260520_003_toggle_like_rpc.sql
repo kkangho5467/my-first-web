@@ -1,8 +1,8 @@
 -- RPC: Atomically toggle like for a post and return new liked state and count
--- Usage: SELECT * FROM public.toggle_like(123);
+-- Usage: SELECT * FROM public.toggle_like('<post-uuid>');
 -- Ensures the caller is authenticated and operates on their own user id via auth.uid()
 
-create or replace function public.toggle_like(p_post_id bigint)
+create or replace function public.toggle_like(p_post_id uuid)
   returns table(is_liked boolean, like_count bigint)
   language plpgsql
 as $$
@@ -39,4 +39,4 @@ end;
 $$;
 
 -- Grant execute to authenticated users (optional depending on Supabase setup)
-grant execute on function public.toggle_like(bigint) to authenticated;
+grant execute on function public.toggle_like(uuid) to authenticated;

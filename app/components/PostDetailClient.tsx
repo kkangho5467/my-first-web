@@ -100,8 +100,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
 
   const loadLikeState = useCallback(async (postId: string, user?: User | null) => {
     try {
-      const postIdNum = Number(postId);
-      if (isNaN(postIdNum)) {
+      if (!postId) {
         console.error('유효하지 않은 post_id:', postId);
         return;
       }
@@ -110,14 +109,14 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       const countPromise = supabase
         .from('likes')
         .select('*', { count: 'exact', head: true })
-        .eq('post_id', postIdNum);
+        .eq('post_id', postId);
 
       // 현재 유저의 좋아요 여부 조회
       const userPromise = user?.id
         ? supabase
             .from('likes')
             .select('id')
-            .eq('post_id', postIdNum)
+            .eq('post_id', postId)
             .eq('user_id', user.id)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null });
@@ -129,7 +128,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         console.error('좋아요 개수 조회 실패:', countRes.error.message || countRes.error);
       }
       const totalCount = countRes.count ?? 0;
-      console.log(`[좋아요 로드] post_id=${postIdNum}, totalCount=${totalCount}`);
+      console.log(`[좋아요 로드] post_id=${postId}, totalCount=${totalCount}`);
       setLikeCount(totalCount);
 
       // 유저 좋아요 여부 설정
@@ -137,7 +136,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         console.error('유저 좋아요 조회 실패:', userRes.error.message || userRes.error);
       }
       const userLiked = !!(userRes && userRes.data);
-      console.log(`[좋아요 로드] post_id=${postIdNum}, user_liked=${userLiked}`);
+      console.log(`[좋아요 로드] post_id=${postId}, user_liked=${userLiked}`);
       setIsLiked(userLiked);
     } catch (err) {
       console.error('좋아요 상태 로드 실패:', err instanceof Error ? err.message : String(err));
@@ -260,8 +259,7 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
       return;
     }
 
-    const postIdNum = Number(id);
-    if (isNaN(postIdNum)) {
+    if (!id) {
       console.error('유효하지 않은 post_id:', id);
       toast.error('게시글 정보를 확인할 수 없습니다.');
       return;
@@ -277,11 +275,11 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
     try {
       if (wasLiked) {
         // 좋아요 제거
-        console.log(`[좋아요 제거 요청] post_id=${postIdNum}, user_id=${currentUser.id}`);
+        console.log(`[좋아요 제거 요청] post_id=${id}, user_id=${currentUser.id}`);
         const { error } = await supabase
           .from('likes')
           .delete()
-          .match({ post_id: postIdNum, user_id: currentUser.id });
+          .match({ post_id: id, user_id: currentUser.id });
 
         if (error) {
           console.error('Supabase DB 에러 (DELETE):', error.message || error);
@@ -290,10 +288,10 @@ export default function PostDetailClient({ id, initialPost }: PostDetailClientPr
         console.log('[좋아요 제거] 성공');
       } else {
         // 좋아요 추가
-        console.log(`[좋아요 추가 요청] post_id=${postIdNum}, user_id=${currentUser.id}`);
+        console.log(`[좋아요 추가 요청] post_id=${id}, user_id=${currentUser.id}`);
         const { error } = await supabase
           .from('likes')
-          .insert([{ post_id: postIdNum, user_id: currentUser.id }]);
+          .insert([{ post_id: id, user_id: currentUser.id }]);
 
         if (error) {
           console.error('Supabase DB 에러 (INSERT):', error.message || error);
