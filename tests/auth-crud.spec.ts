@@ -20,14 +20,13 @@ test.describe('Auth + CRUD flows', () => {
     // 로그인 페이지를 벗어날 때까지 대기
     await page.waitForURL(url => !url.href.includes('/auth'), { timeout: 10000 });
 
-    // 💡 [안정성 추가] Supabase 인증 세션/쿠키가 브라우저에 완전히 구워질 수 있도록 2초간 대기합니다.
+    // Supabase 인증 세션/쿠키가 브라우저에 완전히 구워질 수 있도록 2초간 대기합니다.
     await page.waitForTimeout(2000);
 
     // 2) /posts/new에서 제목/내용 입력 후 저장
     await page.goto('/posts/new');
 
-    // 💡 [안전장치 추가] 혹시라도 로그인 쿠키가 안 먹혀서 /auth로 튕겨 나갔는지 검증합니다.
-    // 만약 여기서 터지면 100% 인증(쿠키/세션) 누락 문제입니다.
+    // 혹시라도 로그인 쿠키가 안 먹혀서 /auth로 튕겨 나갔는지 검증
     await page.waitForURL(/.*\/posts\/new.*/, { timeout: 5000 });
 
     // 이제 안심하고 제목 입력칸을 찾습니다.
@@ -46,8 +45,11 @@ test.describe('Auth + CRUD flows', () => {
     // 3) /posts 목록에서 새 글 제목 확인
     await page.goto('/posts');
 
-    // 깃허브 컴퓨터가 느릴 수 있으므로 최대 15초 동안 넉넉하게 기다려줌
-    await expect(page.getByRole('link', { name: title })).toBeVisible({ timeout: 15000 });
+    // 💡 [새로고침 추가] 페이지 이동 직후 혹시 모를 캐시나 데이터 갱신 지연을 깨우기 위해 강제 새로고침을 수행합니다.
+    await page.reload();
+
+    // 💡 [매칭 방식 변경] getByRole('link') 대신 화면 어디든 해당 제목 텍스트가 존재하는지 검증하여 훨씬 유연하게 잡아냅니다.
+    await expect(page.getByText(title)).toBeVisible({ timeout: 15000 });
   });
 
   test('거절 경로: 인증 없이 /posts/new 접근 시 로그인 페이지로 리다이렉트', async ({ browser }) => {

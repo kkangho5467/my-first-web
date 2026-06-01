@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // 💡 Next.js 캐시를 끄고 항상 실시간으로 DB에서 글을 가져오도록 강제합니다.
+
 import MainLayout from "@/app/components/MainLayout";
 import DailyPostBoard from "@/app/components/DailyPostBoard";
 
