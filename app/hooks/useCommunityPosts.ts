@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MockPost } from "@/content/blog-content";
 import { getSafeUser } from "@/lib/supabaseAuth";
+import { sanitizeHtmlContent } from "@/lib/sanitizeHtml";
 import { supabase } from "@/lib/supabaseClient";
 import { showGlobalToast } from "@/lib/toast";
 import type { User } from "@supabase/supabase-js";
@@ -181,10 +182,13 @@ export async function createPostInSupabase(
     const author_name = profileData?.nickname || user.email?.split("@")[0] || "Unknown";
     const author_id = user.id;
 
+    // sanitize content before saving to DB to reduce XSS surface
+    const sanitizedContent = sanitizeHtmlContent(content);
+
     // 데이터 저장
     const { error } = await supabase.from("posts").insert({
       title,
-      content,
+      content: sanitizedContent,
       category: category || "자유수다",
       author_name,
       author_id,
@@ -232,6 +236,11 @@ export async function updatePostInSupabase(
 
   if (thumbnailUrl !== undefined) {
     payload.thumbnail_url = thumbnailUrl;
+  }
+
+  // sanitize content before update
+  if (payload.content) {
+    payload.content = sanitizeHtmlContent(payload.content as string);
   }
 
   const { error } = await supabase.from("posts").update(payload).eq("id", postId);

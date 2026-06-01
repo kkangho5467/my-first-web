@@ -72,7 +72,7 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
 
       const editor = new Quill(editorElement, editorOptions);
 
-      const toolbar = editor.getModule("toolbar") as { addHandler: (name: string, handler: (...args: any[]) => void) => void } | null;
+      const toolbar = editor.getModule("toolbar") as { addHandler: (name: string, handler: (...args: unknown[]) => void) => void } | null;
       if (toolbar) {
         // 이미지 버튼 클릭 시 숨김 input을 열어 업로드 흐름으로 연결한다.
         toolbar.addHandler("image", () => {
@@ -80,7 +80,8 @@ export default function QuillEditor({ value, onChange, placeholder, onImageUploa
         });
 
         // 글꼴 크기 선택기가 선택한 값을 에디터에 적용하도록 핸들러 추가
-        toolbar.addHandler("size", (value: string) => {
+        toolbar.addHandler("size", (...args: unknown[]) => {
+          const value = String(args[0] ?? "");
           const range = editor.getSelection(true);
           if (range) {
             editor.format("size", value);
