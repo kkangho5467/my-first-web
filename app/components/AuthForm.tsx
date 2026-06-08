@@ -57,7 +57,6 @@ export default function AuthForm({ initialMode = "login", showModeSwitch = true 
     setIsSubmitting(true);
 
     try {
-      // 이미 계정이 있으면 회원가입 대신 즉시 로그인 처리한다.
       const { error: existingSignInError } = await signInWithPassword({
         username: normalizedUsername,
         password: trimmedPassword,
@@ -135,7 +134,6 @@ export default function AuthForm({ initialMode = "login", showModeSwitch = true 
       return;
     }
 
-    // Enter 제출 포함: 모드에 맞는 인증 동작으로 분기한다.
     if (isLoginMode) {
       await handleSignIn();
       return;
@@ -156,98 +154,100 @@ export default function AuthForm({ initialMode = "login", showModeSwitch = true 
       </CardHeader>
 
       <CardContent>
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="space-y-1.5">
-          <label htmlFor="auth-username" className="text-sm font-medium text-slate-700">아이디</label>
-          <Input
-            id="auth-username"
-            type="text"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="아이디를 입력하세요"
-            className="w-full"
-          />
-        </div>
-
-        {!isLoginMode ? (
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1.5">
-            <label htmlFor="auth-nickname" className="text-sm font-medium text-slate-700">
-              닉네임
-            </label>
+            <label htmlFor="auth-username" className="text-sm font-medium text-slate-700">아이디</label>
             <Input
-              id="auth-nickname"
+              id="auth-username"
               type="text"
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
-              placeholder="닉네임을 입력하세요"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="아이디를 입력하세요"
               className="w-full"
             />
           </div>
-        ) : null}
 
-        <div className="space-y-1.5">
-          <label htmlFor="auth-password" className="text-sm font-medium text-slate-700">
-            비밀번호
-          </label>
-          <Input
-            id="auth-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="비밀번호를 입력하세요"
-            className="w-full"
-          />
-        </div>
+          {!isLoginMode ? (
+            <div className="space-y-1.5">
+              <label htmlFor="auth-nickname" className="text-sm font-medium text-slate-700">
+                닉네임
+              </label>
+              <Input
+                id="auth-nickname"
+                type="text"
+                value={nickname}
+                onChange={(event) => setNickname(event.target.value)}
+                placeholder="닉네임을 입력하세요"
+                className="w-full"
+              />
+            </div>
+          ) : null}
 
-        {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+          <div className="space-y-1.5">
+            <label htmlFor="auth-password" className="text-sm font-medium text-slate-700">
+              비밀번호
+            </label>
+            <Input
+              id="auth-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="비밀번호를 입력하세요"
+              className="w-full"
+            />
+          </div>
 
-        <div className="flex gap-2">
-          {isLoginMode ? (
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              로그인
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={isSubmitting}
-            >
-              회원가입
-            </Button>
-          )}
-        </div>
+          {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
 
-        {showModeSwitch ? (
-          <div className="pt-1 text-center text-xs text-slate-500">
+          {/* 💡 버튼 영역 개편: 로그인과 회원가입을 나란히 배치하여 시인성을 높이고 조건문 함정을 제거합니다. */}
+          <div className="flex w-full gap-2 pt-2">
             {isLoginMode ? (
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => {
-                  setIsLoginMode(false);
-                  setErrorMessage("");
-                }}
-              >
-                아직 계정이 없으신가요? 회원가입
-              </Button>
+              <>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  로그인
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setIsLoginMode(false);
+                    setErrorMessage("");
+                  }}
+                >
+                  회원가입
+                </Button>
+              </>
             ) : (
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => {
-                  setIsLoginMode(true);
-                  setErrorMessage("");
-                }}
-              >
-                이미 계정이 있으신가요? 로그인
-              </Button>
+              <>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  회원가입 완료
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    setIsLoginMode(true);
+                    setErrorMessage("");
+                  }}
+                >
+                  취소
+                </Button>
+              </>
             )}
           </div>
-        ) : null}
-      </form>
+        </form>
       </CardContent>
     </Card>
   );
